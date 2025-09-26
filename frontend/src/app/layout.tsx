@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '../styles/globals.css'
 import { WalletProvider } from '../contexts/WalletContext'
+import { AuthProvider } from '../contexts/AuthContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -19,9 +20,11 @@ export default function RootLayout({
   return (
     <html lang="en" className="scroll-smooth">
       <body className={`${inter.className} enhanced-bg min-h-screen text-white`}>
-        <WalletProvider>
-          {children}
-        </WalletProvider>
+        <AuthProvider>
+          <WalletProvider>
+            {children}
+          </WalletProvider>
+        </AuthProvider>
       </body>
     </html>
   )

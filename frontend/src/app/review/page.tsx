@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, Bug, Plus, Edit, Trash2, CheckCircle, AlertTriangle, DollarSign, Clock, User } from 'lucide-react';
+import { ArrowLeft, Bug, Plus, Edit, Trash2, CheckCircle, AlertTriangle, DollarSign, Clock, User, Github, ExternalLink } from 'lucide-react';
 import Header from '../../components/Header';
+import { useAuth } from '../../contexts/AuthContext';
+import { generateGitHubIssueBody, generateIssueTitle } from '../../utils/issueTemplates';
 
 // Mock data for AI-discovered issues and features
 // In real implementation, all issues would start as "pending" and owner decides approval
@@ -68,11 +70,22 @@ const mockIssues = [
 export default function IssueReview() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { user } = useAuth();
   const githubUrl = searchParams.get('repo') || 'https://github.com/example/repo';
   
   const [issues, setIssues] = useState(mockIssues);
   const [editingIssue, setEditingIssue] = useState<number | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [creatingGitHubIssue, setCreatingGitHubIssue] = useState<number | null>(null);
+  const [showIssueForm, setShowIssueForm] = useState(false);
+  const [issueFormData, setIssueFormData] = useState({
+    title: '',
+    description: '',
+    severity: 'medium' as 'low' | 'medium' | 'high' | 'critical',
+    type: 'bug',
+    file: '',
+    recommendation: ''
+  });
 
   const toggleApproval = (id: number) => {
     setIssues(prev => prev.map(issue => 
@@ -102,8 +115,108 @@ export default function IssueReview() {
   const totalHours = approvedIssues.reduce((sum, issue) => sum + issue.estimatedHours, 0);
 
   const handleConfirmListing = () => {
+    // Store approved issues for the success page
+    localStorage.setItem('approvedIssuesForBounty', JSON.stringify(approvedIssues));
+    
     // This would integrate with smart contracts to create bounties
     router.push(`/success?repo=${encodeURIComponent(githubUrl)}&bounties=${approvedIssues.length}&total=${totalBounty}`);
+  };
+
+
+  const createManualGitHubIssue = async () => {
+    if (!user) {
+      alert('You must be logged in to create GitHub issues');
+      return;
+    }
+
+    if (!issueFormData.title.trim() || !issueFormData.description.trim()) {
+      alert('Please fill in both title and description');
+      return;
+    }
+
+    setCreatingGitHubIssue(-1); // Use -1 for manual creation
+    
+    try {
+      const accessToken = localStorage.getItem('github_access_token');
+      if (!accessToken) {
+        alert('GitHub access token not found. Please log in again.');
+        return;
+      }
+
+      const issueTitle = generateIssueTitle({
+        title: issueFormData.title,
+        description: issueFormData.description,
+        severity: issueFormData.severity,
+        type: issueFormData.type,
+        file: issueFormData.file,
+        recommendation: issueFormData.recommendation
+      });
+
+      const issueBody = generateGitHubIssueBody({
+        title: issueFormData.title,
+        description: issueFormData.description,
+        severity: issueFormData.severity,
+        type: issueFormData.type,
+        file: issueFormData.file,
+        recommendation: issueFormData.recommendation
+      }, githubUrl);
+
+      const response = await fetch('/api/github/issues', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          accessToken,
+          repoUrl: githubUrl,
+          title: issueTitle,
+          body: issueBody,
+          severity: issueFormData.severity,
+          type: issueFormData.type
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        alert(`GitHub issue created successfully! Issue #${result.issue.number}`);
+        
+        // Add the new issue to the local list
+        const newIssue = {
+          id: Date.now(),
+          type: issueFormData.type,
+          title: issueFormData.title,
+          description: issueFormData.description,
+          severity: issueFormData.severity,
+          estimatedHours: 0,
+          suggestedBounty: 0,
+          files: issueFormData.file ? [issueFormData.file] : [],
+          approved: false,
+          githubIssueUrl: result.issue.html_url,
+          githubIssueNumber: result.issue.number
+        };
+        
+        setIssues(prev => [...prev, newIssue]);
+        
+        // Reset form
+        setIssueFormData({
+          title: '',
+          description: '',
+          severity: 'medium',
+          type: 'bug',
+          file: '',
+          recommendation: ''
+        });
+        setShowIssueForm(false);
+      } else {
+        alert(`Failed to create GitHub issue: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error creating GitHub issue:', error);
+      alert('An error occurred while creating the GitHub issue');
+    } finally {
+      setCreatingGitHubIssue(null);
+    }
   };
 
   return (
@@ -189,11 +302,11 @@ export default function IssueReview() {
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-2xl font-bold text-white">Security & Quality Issues</h2>
               <button 
-                onClick={() => setShowAddForm(true)}
+                onClick={() => setShowIssueForm(true)}
                 className="btn-secondary text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Manual Check
+                Create GitHub Issue
               </button>
             </div>
 
@@ -275,8 +388,8 @@ export default function IssueReview() {
                           onClick={() => toggleApproval(issue.id)}
                           className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                             issue.approved
-                              ? 'bg-green-600 text-white hover:bg-green-700'
-                              : 'bg-gray-200 text-gray-200 hover:bg-gray-300'
+                              ? 'text-green-400'
+                              : 'text-gray-200 hover:text-white'
                           }`}
                         >
                           {issue.approved ? 'Approved' : 'Approve'}
@@ -285,6 +398,19 @@ export default function IssueReview() {
                         <button className="p-2 text-gray-300 hover:text-white transition-colors">
                           <Edit className="w-4 h-4" />
                         </button>
+                        
+                        {/* Show link to GitHub issue if it exists */}
+                        {(issue as any).githubIssueUrl && (
+                          <a
+                            href={(issue as any).githubIssueUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="p-2 text-green-400 hover:text-green-300 transition-colors"
+                            title={`View GitHub Issue #${(issue as any).githubIssueNumber}`}
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        )}
                         
                         <button 
                           onClick={() => deleteIssue(issue.id)}
@@ -299,6 +425,7 @@ export default function IssueReview() {
               })}
             </div>
           </div>
+
 
           {/* Confirm Section */}
           <div className="github-card-elevated p-6">
@@ -329,23 +456,172 @@ export default function IssueReview() {
               </div>
             </div>
           </div>
+        </div>
+      </main>
 
-          {/* Analysis Info */}
-          <div className="github-card-elevated p-6 mt-8 border border-blue-200 bg-blue-50">
-            <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
-              <AlertTriangle className="w-5 h-5 mr-2" />
-              Report Features
-            </h3>
-            <div className="space-y-2 text-sm text-blue-700">
-              <p>• <strong>Security Analysis:</strong> Comprehensive vulnerability assessment and recommendations</p>
-              <p>• <strong>Code Quality:</strong> Maintainability, complexity, and best practices review</p>
-              <p>• <strong>Dependency Audit:</strong> Third-party library security and update recommendations</p>
-              <p>• <strong>Performance Issues:</strong> Potential bottlenecks and optimization opportunities</p>
-              <p>• <strong>Actionable Fixes:</strong> Step-by-step remediation instructions for each finding</p>
+      {/* GitHub Issue Creation Form Modal */}
+      {showIssueForm && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="github-card-elevated max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold text-white flex items-center">
+                  <Github className="w-5 h-5 mr-2" />
+                  Create GitHub Issue
+                </h3>
+                <button
+                  onClick={() => setShowIssueForm(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <form onSubmit={(e) => { e.preventDefault(); createManualGitHubIssue(); }} className="space-y-6">
+                {/* Title */}
+                <div>
+                  <label htmlFor="issue-title" className="block text-sm font-semibold text-gray-200 mb-2">
+                    Issue Title *
+                  </label>
+                  <input
+                    type="text"
+                    id="issue-title"
+                    value={issueFormData.title}
+                    onChange={(e) => setIssueFormData(prev => ({ ...prev, title: e.target.value }))}
+                    placeholder="Brief description of the issue"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+
+                {/* Description */}
+                <div>
+                  <label htmlFor="issue-description" className="block text-sm font-semibold text-gray-200 mb-2">
+                    Description *
+                  </label>
+                  <textarea
+                    id="issue-description"
+                    value={issueFormData.description}
+                    onChange={(e) => setIssueFormData(prev => ({ ...prev, description: e.target.value }))}
+                    placeholder="Detailed description of the issue, steps to reproduce, expected vs actual behavior, etc."
+                    rows={6}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                    required
+                  />
+                </div>
+
+                {/* Type and Severity Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Type */}
+                  <div>
+                    <label htmlFor="issue-type" className="block text-sm font-semibold text-gray-200 mb-2">
+                      Issue Type
+                    </label>
+                    <select
+                      id="issue-type"
+                      value={issueFormData.type}
+                      onChange={(e) => setIssueFormData(prev => ({ ...prev, type: e.target.value }))}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="bug">Bug</option>
+                      <option value="security">Security Vulnerability</option>
+                      <option value="feature">Feature Request</option>
+                      <option value="performance">Performance Issue</option>
+                      <option value="documentation">Documentation</option>
+                      <option value="enhancement">Enhancement</option>
+                    </select>
+                  </div>
+
+                  {/* Severity */}
+                  <div>
+                    <label htmlFor="issue-severity" className="block text-sm font-semibold text-gray-200 mb-2">
+                      Severity
+                    </label>
+                    <select
+                      id="issue-severity"
+                      value={issueFormData.severity}
+                      onChange={(e) => setIssueFormData(prev => ({ ...prev, severity: e.target.value as any }))}
+                      className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                      <option value="critical">Critical</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* File Path (Optional) */}
+                <div>
+                  <label htmlFor="issue-file" className="block text-sm font-semibold text-gray-200 mb-2">
+                    File Path (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    id="issue-file"
+                    value={issueFormData.file}
+                    onChange={(e) => setIssueFormData(prev => ({ ...prev, file: e.target.value }))}
+                    placeholder="e.g., src/components/Login.tsx"
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+
+                {/* Recommendation (Optional) */}
+                <div>
+                  <label htmlFor="issue-recommendation" className="block text-sm font-semibold text-gray-200 mb-2">
+                    Recommended Solution (Optional)
+                  </label>
+                  <textarea
+                    id="issue-recommendation"
+                    value={issueFormData.recommendation}
+                    onChange={(e) => setIssueFormData(prev => ({ ...prev, recommendation: e.target.value }))}
+                    placeholder="Suggested fix or improvement approach"
+                    rows={3}
+                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-vertical"
+                  />
+                </div>
+
+                {/* Info Box */}
+                <div className="bg-blue-600/10 border border-blue-500/30 rounded-md p-4">
+                  <div className="text-sm text-blue-300">
+                    <strong>Repository:</strong> {githubUrl}
+                    <br />
+                    This issue will be created directly in your GitHub repository with proper formatting and labels.
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-col sm:flex-row gap-3 pt-4">
+                  <button
+                    type="button"
+                    onClick={() => setShowIssueForm(false)}
+                    className="btn-secondary order-2 sm:order-1"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={creatingGitHubIssue === -1 || !issueFormData.title.trim() || !issueFormData.description.trim()}
+                    className="btn-primary order-1 sm:order-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {creatingGitHubIssue === -1 ? (
+                      <div className="flex items-center justify-center">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                        Creating Issue...
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center">
+                        <Github className="w-4 h-4 mr-2" />
+                        Create GitHub Issue
+                      </div>
+                    )}
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
         </div>
-      </main>
+      )}
     </div>
   );
 }

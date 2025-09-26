@@ -2,13 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Coins, User, Settings, Wallet } from 'lucide-react';
+import { Menu, X, Coins, User, Settings, Wallet, LogOut, Github } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
+import { useAuth } from '../contexts/AuthContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
   const { account, isConnected, isConnecting, connectWallet, disconnectWallet } = useWallet();
+  const { user, isAuthenticated, logout } = useAuth();
 
   const handleAddRepo = () => {
     router.push('/submit');
@@ -40,31 +42,74 @@ export default function Header() {
               Solve
             </button>
             
-            {/* Wallet Button */}
-            {isConnected ? (
-              <div className="flex items-center space-x-2">
-                <div className="px-3 py-2 bg-green-600/20 border border-green-500/30 rounded-lg text-green-300 text-sm">
-                  <div className="flex items-center space-x-2">
-                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
-                    <span>{account?.substring(0, 6)}...{account?.substring(account.length - 4)}</span>
+            {/* User Profile / Auth */}
+            {isAuthenticated && user ? (
+              <div className="flex items-center space-x-3">
+                {/* Wallet Status */}
+                {isConnected ? (
+                  <div className="relative group">
+                    <button className="px-3 py-1.5 bg-green-600/20 border border-green-500/30 rounded-lg text-green-300 text-xs hover:bg-green-600/30 transition-colors">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                        <span className="hidden sm:inline">Wallet Connected</span>
+                        <span className="sm:hidden">Wallet</span>
+                        <span className="font-mono">{account?.substring(0, 4)}...{account?.substring(account.length - 4)}</span>
+                      </div>
+                    </button>
+                    
+                    {/* Dropdown */}
+                    <div className="absolute right-0 top-full mt-2 w-64 bg-gray-800 border border-gray-700 rounded-lg shadow-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+                      <div className="p-3">
+                        <div className="text-xs text-gray-400 mb-1">Connected Account</div>
+                        <div className="text-sm text-gray-200 font-mono break-all mb-3">{account}</div>
+                        <button
+                          onClick={disconnectWallet}
+                          className="w-full flex items-center justify-center px-3 py-2 bg-red-600/20 border border-red-500/30 rounded text-red-300 text-xs hover:bg-red-600/30 transition-colors"
+                        >
+                          <X className="w-3 h-3 mr-1" />
+                          Disconnect Wallet
+                        </button>
+                      </div>
+                    </div>
                   </div>
+                ) : (
+                  <button
+                    onClick={connectWallet}
+                    disabled={isConnecting}
+                    className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-gray-300 text-xs transition-colors flex items-center space-x-1"
+                  >
+                    <Wallet className="w-3 h-3" />
+                    <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+                  </button>
+                )}
+                
+                {/* User Profile */}
+                <div className="flex items-center space-x-2">
+                  <img
+                    src={user.avatar_url}
+                    alt={user.login}
+                    className="w-8 h-8 rounded-full border-2 border-gray-600"
+                  />
+                  <div className="hidden sm:block">
+                    <div className="text-sm font-medium text-white">{user.name || user.login}</div>
+                    <div className="text-xs text-gray-400">@{user.login}</div>
+                  </div>
+                  <button
+                    onClick={logout}
+                    className="p-2 text-gray-400 hover:text-white transition-colors"
+                    title="Sign out"
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
                 </div>
-                <button
-                  onClick={disconnectWallet}
-                  className="p-2 text-gray-300 hover:text-white transition-colors"
-                  title="Disconnect Wallet"
-                >
-                  <X className="w-4 h-4" />
-                </button>
               </div>
             ) : (
               <button
-                onClick={connectWallet}
-                disabled={isConnecting}
-                className="btn-secondary flex items-center space-x-2"
+                onClick={() => router.push('/auth/login')}
+                className="btn-primary flex items-center space-x-2"
               >
-                <Wallet className="w-4 h-4" />
-                <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+                <Github className="w-4 h-4" />
+                <span>Sign In</span>
               </button>
             )}
           </div>

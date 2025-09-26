@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Github, Zap, Shield, AlertCircle, ExternalLink, Wallet, CheckCircle } from 'lucide-react';
 import Header from '../../components/Header';
+import ProtectedRoute from '../../components/ProtectedRoute';
 import { useWallet } from '../../contexts/WalletContext';
 
 export default function SubmitProject() {
@@ -81,8 +82,9 @@ export default function SubmitProject() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-900">
-      <Header />
+    <ProtectedRoute>
+      <div className="min-h-screen bg-gray-900">
+        <Header />
       
       <main className="pt-20 px-4 py-12">
         <div className="max-w-4xl mx-auto">
@@ -279,5 +281,6 @@ export default function SubmitProject() {
         </div>
       )}
     </div>
+    </ProtectedRoute>
   );
 }
