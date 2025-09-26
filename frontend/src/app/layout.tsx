@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import '../styles/globals.css'
+import { WalletProvider } from '../contexts/WalletContext'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -16,9 +17,11 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="scroll-smooth dark">
-      <body className={`${inter.className} bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900 min-h-screen text-white`}>
-        {children}
+    <html lang="en" className="scroll-smooth">
+      <body className={`${inter.className} enhanced-bg min-h-screen text-white`}>
+        <WalletProvider>
+          {children}
+        </WalletProvider>
       </body>
     </html>
   )

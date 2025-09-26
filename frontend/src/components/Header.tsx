@@ -2,94 +2,84 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Coins, User, Settings } from 'lucide-react';
+import { Menu, X, Coins, User, Settings, Wallet } from 'lucide-react';
+import { useWallet } from '../contexts/WalletContext';
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
+  const { account, isConnected, isConnecting, connectWallet, disconnectWallet } = useWallet();
 
   const handleAddRepo = () => {
     router.push('/submit');
   };
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 glass-morphism border-b border-gray-600/30">
+    <header className="fixed top-0 left-0 right-0 z-50 github-header">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
           <div className="flex items-center">
             <div className="flex items-center space-x-2">
-              <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <div className="w-8 h-8 bg-blue-600 rounded-md flex items-center justify-center">
                 <Coins className="w-5 h-5 text-white" />
               </div>
-              <span className="text-xl font-bold gradient-text">BountyHub</span>
+              <span className="text-xl font-semibold text-white">SecGit</span>
             </div>
           </div>
 
-          {/* Desktop Navigation */}
-          <nav className="hidden md:flex space-x-8">
-            <a href="#explore" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-              Explore Projects
-            </a>
-            <a href="#contributors" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-              Contributors
-            </a>
-            <a href="#rewards" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-              Rewards
-            </a>
-            <a href="#about" className="text-gray-300 hover:text-blue-400 font-medium transition-colors">
-              About
-            </a>
-          </nav>
-
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-3">
             <button onClick={handleAddRepo} className="btn-secondary">
-              Add Repo
+              Submit Code
             </button>
-            <button className="btn-primary">
+            <button 
+              onClick={() => router.push('/marketplace')}
+              className="btn-primary"
+            >
               Solve
             </button>
+            
+            {/* Wallet Button */}
+            {isConnected ? (
+              <div className="flex items-center space-x-2">
+                <div className="px-3 py-2 bg-green-600/20 border border-green-500/30 rounded-lg text-green-300 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-2 h-2 bg-green-400 rounded-full"></div>
+                    <span>{account?.substring(0, 6)}...{account?.substring(account.length - 4)}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={disconnectWallet}
+                  className="p-2 text-gray-300 hover:text-white transition-colors"
+                  title="Disconnect Wallet"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <button
+                onClick={connectWallet}
+                disabled={isConnecting}
+                className="btn-secondary flex items-center space-x-2"
+              >
+                <Wallet className="w-4 h-4" />
+                <span>{isConnecting ? 'Connecting...' : 'Connect Wallet'}</span>
+              </button>
+            )}
           </div>
 
           {/* Mobile menu button */}
           <div className="md:hidden">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
-              className="p-2 rounded-lg text-gray-300 hover:bg-gray-800/50 transition-colors"
+              className="p-2 rounded-md text-gray-200 hover:bg-gray-700/50 hover:text-white transition-all duration-200"
             >
               {isMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
             </button>
           </div>
         </div>
-
-        {/* Mobile Navigation */}
-        {isMenuOpen && (
-          <div className="md:hidden py-4 border-t border-gray-600/30">
-            <div className="flex flex-col space-y-4">
-              <a href="#explore" className="text-gray-300 hover:text-blue-400 font-medium transition-colors px-2 py-1">
-                Explore Projects
-              </a>
-              <a href="#contributors" className="text-gray-300 hover:text-blue-400 font-medium transition-colors px-2 py-1">
-                Contributors
-              </a>
-              <a href="#rewards" className="text-gray-300 hover:text-blue-400 font-medium transition-colors px-2 py-1">
-                Rewards
-              </a>
-              <a href="#about" className="text-gray-300 hover:text-blue-400 font-medium transition-colors px-2 py-1">
-                About
-              </a>
-              <div className="flex flex-col space-y-2 pt-4 border-t border-gray-600/30">
-                <button onClick={handleAddRepo} className="btn-secondary">
-                  Add Repo
-                </button>
-                <button className="btn-primary">
-                  Solve
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
+ 
       </div>
     </header>
   );

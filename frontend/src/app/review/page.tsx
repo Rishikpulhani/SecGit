@@ -86,10 +86,10 @@ export default function IssueReview() {
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'high': return 'text-red-400 bg-red-500/10 border-red-500/30';
-      case 'medium': return 'text-yellow-400 bg-yellow-500/10 border-yellow-500/30';
-      case 'low': return 'text-green-400 bg-green-500/10 border-green-500/30';
-      default: return 'text-gray-400 bg-gray-500/10 border-gray-500/30';
+      case 'high': return 'text-red-300 bg-red-600/20 border-red-500/30';
+      case 'medium': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
+      case 'low': return 'text-green-300 bg-green-600/20 border-green-500/30';
+      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
     }
   };
 
@@ -107,7 +107,7 @@ export default function IssueReview() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900">
+    <div className="min-h-screen bg-gray-900">
       <Header />
       
       <main className="pt-20 px-4 py-12">
@@ -115,7 +115,7 @@ export default function IssueReview() {
           {/* Back button */}
           <button 
             onClick={() => router.back()}
-            className="inline-flex items-center text-gray-400 hover:text-blue-400 transition-colors mb-8"
+            className="inline-flex items-center text-gray-300 hover:text-white transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Analysis
@@ -123,77 +123,77 @@ export default function IssueReview() {
 
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-green-900/50 to-blue-900/50 border border-green-500/30 mb-6 backdrop-blur-sm">
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-green-600/20 border border-green-500/30 backdrop-blur-sm mb-6">
               <CheckCircle className="w-4 h-4 mr-2 text-green-400" />
-              <span className="text-sm font-medium text-green-300">Analysis Complete</span>
+              <span className="text-sm font-medium text-white">Analysis Complete</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="gradient-text">Review Discovered Issues</span>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
+              Review Analysis Results
             </h1>
             
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-4">
-              Our AI has identified 5 potential issues and features in your repository. As the repository owner, you have full control to approve, edit, or reject each item before creating bounties.
+            <p className="text-xl text-gray-200 max-w-3xl mx-auto mb-4">
+              Review the identified security vulnerabilities and code quality issues. You can approve, edit, or remove items before generating the final report.
             </p>
             
-            <p className="text-sm text-gray-400 break-all max-w-3xl mx-auto">
+            <p className="text-sm text-gray-300 break-all max-w-3xl mx-auto">
               Repository: {githubUrl}
             </p>
           </div>
 
           {/* Summary Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-            <div className="glass-morphism rounded-xl p-4">
+            <div className="github-card-elevated p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400">Total Issues</p>
-                  <p className="text-2xl font-bold text-gray-100">{issues.length}</p>
+                  <p className="text-sm text-gray-300">Total Issues</p>
+                  <p className="text-2xl font-bold text-white">{issues.length}</p>
                 </div>
-                <Bug className="w-8 h-8 text-blue-400" />
+                <Bug className="w-8 h-8 text-gray-300" />
               </div>
             </div>
             
-            <div className="glass-morphism rounded-xl p-4">
+            <div className="github-card-elevated p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400">Approved</p>
-                  <p className="text-2xl font-bold text-green-400">{approvedIssues.length}</p>
+                  <p className="text-sm text-gray-300">Approved</p>
+                  <p className="text-2xl font-bold text-green-600">{approvedIssues.length}</p>
                 </div>
-                <CheckCircle className="w-8 h-8 text-green-400" />
+                <CheckCircle className="w-8 h-8 text-green-600" />
               </div>
             </div>
             
-            <div className="glass-morphism rounded-xl p-4">
+            <div className="github-card-elevated p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400">Total Bounty</p>
-                  <p className="text-2xl font-bold text-purple-400">{totalBounty.toFixed(2)} ETH</p>
+                  <p className="text-sm text-gray-300">Analysis Cost</p>
+                  <p className="text-2xl font-bold text-white">{totalBounty.toFixed(2)} ETH</p>
                 </div>
-                <DollarSign className="w-8 h-8 text-purple-400" />
+                <DollarSign className="w-8 h-8 text-gray-300" />
               </div>
             </div>
             
-            <div className="glass-morphism rounded-xl p-4">
+            <div className="github-card-elevated p-4">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm text-gray-400">Est. Hours</p>
-                  <p className="text-2xl font-bold text-cyan-400">{totalHours}h</p>
+                  <p className="text-sm text-gray-300">Est. Fix Time</p>
+                  <p className="text-2xl font-bold text-white">{totalHours}h</p>
                 </div>
-                <Clock className="w-8 h-8 text-cyan-400" />
+                <Clock className="w-8 h-8 text-gray-300" />
               </div>
             </div>
           </div>
 
           {/* Issues List */}
-          <div className="glass-morphism rounded-2xl p-6 mb-8">
+          <div className="github-card-elevated p-6 mb-8">
             <div className="flex justify-between items-center mb-6">
-              <h2 className="text-2xl font-bold text-gray-100">Discovered Issues & Features</h2>
+              <h2 className="text-2xl font-bold text-white">Security & Quality Issues</h2>
               <button 
                 onClick={() => setShowAddForm(true)}
                 className="btn-secondary text-sm"
               >
                 <Plus className="w-4 h-4 mr-2" />
-                Add Custom Item
+                Add Manual Check
               </button>
             </div>
 
@@ -204,40 +204,40 @@ export default function IssueReview() {
                 return (
                   <div 
                     key={issue.id} 
-                    className={`border rounded-xl p-6 transition-all ${
+                    className={`border rounded-lg p-6 transition-all ${
                       issue.approved 
-                        ? 'bg-green-500/5 border-green-500/20' 
-                        : 'bg-gray-800/30 border-gray-600/30'
+                        ? 'bg-green-600/10 border-green-500/30 glow-green' 
+                        : 'bg-gray-800/50 border-gray-600/30'
                     }`}
                   >
                     <div className="flex items-start justify-between mb-4">
                       <div className="flex items-start space-x-3">
                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
                           issue.type === 'bug' 
-                            ? 'bg-red-500/20 text-red-400' 
-                            : 'bg-blue-500/20 text-blue-400'
+                            ? 'bg-red-600/20 text-red-400' 
+                            : 'bg-blue-600/20 text-blue-400'
                         }`}>
                           <TypeIcon className="w-5 h-5" />
                         </div>
                         
                         <div className="flex-1">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold text-gray-100">{issue.title}</h3>
+                            <h3 className="text-lg font-semibold text-white">{issue.title}</h3>
                             <span className={`px-2 py-1 rounded-full text-xs border ${getSeverityColor(issue.severity)}`}>
                               {issue.severity.toUpperCase()}
                             </span>
                             <span className={`px-2 py-1 rounded-full text-xs ${
                               issue.type === 'bug' 
-                                ? 'bg-red-500/10 text-red-400 border border-red-500/30' 
-                                : 'bg-blue-500/10 text-blue-400 border border-blue-500/30'
+                                ? 'bg-red-600/20 text-red-400 border border-red-200' 
+                                : 'bg-blue-600/20 text-blue-400 border border-blue-200'
                             }`}>
                               {issue.type.toUpperCase()}
                             </span>
                           </div>
                           
-                          <p className="text-gray-300 mb-3">{issue.description}</p>
+                          <p className="text-gray-200 mb-3">{issue.description}</p>
                           
-                          <div className="flex items-center space-x-6 text-sm text-gray-400">
+                          <div className="flex items-center space-x-6 text-sm text-gray-300">
                             <span className="flex items-center">
                               <DollarSign className="w-4 h-4 mr-1" />
                               {issue.suggestedBounty} ETH
@@ -254,12 +254,12 @@ export default function IssueReview() {
                           
                           <div className="mt-2">
                             <details className="text-sm">
-                              <summary className="text-gray-400 cursor-pointer hover:text-gray-300">
+                              <summary className="text-gray-300 cursor-pointer hover:text-white">
                                 Affected files ({issue.files.length})
                               </summary>
                               <div className="mt-2 space-y-1">
                                 {issue.files.map((file, index) => (
-                                  <span key={index} className="inline-block bg-gray-700/50 text-gray-300 px-2 py-1 rounded text-xs mr-2">
+                                  <span key={index} className="inline-block bg-gray-100 text-gray-200 px-2 py-1 rounded text-xs mr-2">
                                     {file}
                                   </span>
                                 ))}
@@ -273,22 +273,22 @@ export default function IssueReview() {
                       <div className="flex items-center space-x-2">
                         <button
                           onClick={() => toggleApproval(issue.id)}
-                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                          className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
                             issue.approved
-                              ? 'bg-green-500 text-white hover:bg-green-600'
-                              : 'bg-gray-600 text-gray-300 hover:bg-gray-500'
+                              ? 'bg-green-600 text-white hover:bg-green-700'
+                              : 'bg-gray-200 text-gray-200 hover:bg-gray-300'
                           }`}
                         >
                           {issue.approved ? 'Approved' : 'Approve'}
                         </button>
                         
-                        <button className="p-2 text-gray-400 hover:text-blue-400 transition-colors">
+                        <button className="p-2 text-gray-300 hover:text-white transition-colors">
                           <Edit className="w-4 h-4" />
                         </button>
                         
                         <button 
                           onClick={() => deleteIssue(issue.id)}
-                          className="p-2 text-gray-400 hover:text-red-400 transition-colors"
+                          className="p-2 text-gray-300 hover:text-red-600 transition-colors"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -301,13 +301,13 @@ export default function IssueReview() {
           </div>
 
           {/* Confirm Section */}
-          <div className="glass-morphism rounded-2xl p-6">
+          <div className="github-card-elevated p-6">
             <div className="text-center">
-              <h3 className="text-xl font-bold text-gray-100 mb-4">Ready to List Your Bounties?</h3>
-              <p className="text-gray-300 mb-6">
+              <h3 className="text-xl font-bold text-white mb-4">Generate Analysis Report?</h3>
+              <p className="text-gray-200 mb-6">
                 {approvedIssues.length === 0 
-                  ? "Review the AI suggestions above and approve the items you want to create bounties for."
-                  : `You have ${approvedIssues.length} approved items worth ${totalBounty.toFixed(2)} ETH total. These will be listed publicly for contributors to solve.`
+                  ? "Review the analysis results above and approve the items you want included in your final report."
+                  : `You have ${approvedIssues.length} approved findings. Generate a comprehensive security and quality report for your codebase.`
                 }
               </p>
               
@@ -324,24 +324,24 @@ export default function IssueReview() {
                   className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <CheckCircle className="w-4 h-4 mr-2" />
-                  Confirm Listing ({approvedIssues.length} items)
+                  Generate Report ({approvedIssues.length} findings)
                 </button>
               </div>
             </div>
           </div>
 
-          {/* Integration Notes */}
-          <div className="glass-morphism rounded-xl p-6 mt-8 border border-yellow-500/20">
-            <h3 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center">
+          {/* Analysis Info */}
+          <div className="github-card-elevated p-6 mt-8 border border-blue-200 bg-blue-50">
+            <h3 className="text-lg font-semibold text-blue-800 mb-3 flex items-center">
               <AlertTriangle className="w-5 h-5 mr-2" />
-              Smart Contract Integration Points
+              Report Features
             </h3>
-            <div className="space-y-2 text-sm text-gray-300">
-              <p>• <strong>Bounty Creation:</strong> Deploy individual smart contracts for each approved issue</p>
-              <p>• <strong>Escrow Management:</strong> Lock bounty funds in smart contract until completion</p>
-              <p>• <strong>Milestone Tracking:</strong> Integration with GitHub webhooks for PR/commit tracking</p>
-              <p>• <strong>Reputation System:</strong> Update contributor scores based on completion quality</p>
-              <p>• <strong>Payment Distribution:</strong> Automatic ETH distribution on bounty completion</p>
+            <div className="space-y-2 text-sm text-blue-700">
+              <p>• <strong>Security Analysis:</strong> Comprehensive vulnerability assessment and recommendations</p>
+              <p>• <strong>Code Quality:</strong> Maintainability, complexity, and best practices review</p>
+              <p>• <strong>Dependency Audit:</strong> Third-party library security and update recommendations</p>
+              <p>• <strong>Performance Issues:</strong> Potential bottlenecks and optimization opportunities</p>
+              <p>• <strong>Actionable Fixes:</strong> Step-by-step remediation instructions for each finding</p>
             </div>
           </div>
         </div>

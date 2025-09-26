@@ -121,7 +121,7 @@ export default function AIAnalysis() {
   const CurrentIcon = getCurrentStageIcon();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-slate-900">
+    <div className="min-h-screen bg-gray-900">
       <Header />
       
       <main className="pt-20 px-4 py-12">
@@ -129,7 +129,7 @@ export default function AIAnalysis() {
           {/* Back button */}
           <button 
             onClick={() => router.back()}
-            className="inline-flex items-center text-gray-400 hover:text-blue-400 transition-colors mb-8"
+            className="inline-flex items-center text-gray-300 hover:text-white transition-colors mb-8"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Submission
@@ -137,29 +137,29 @@ export default function AIAnalysis() {
 
           {/* Header */}
           <div className="text-center mb-12">
-            <div className="inline-flex items-center px-4 py-2 rounded-full bg-gradient-to-r from-blue-900/50 to-purple-900/50 border border-blue-500/30 mb-6 backdrop-blur-sm">
-              <Brain className="w-4 h-4 mr-2 text-blue-400" />
-              <span className="text-sm font-medium text-blue-300">AI Analysis in Progress</span>
+            <div className="inline-flex items-center px-3 py-1 rounded-full bg-gray-100 border border-gray-200 mb-6">
+              <Brain className="w-4 h-4 mr-2 text-gray-200" />
+              <span className="text-sm font-medium text-gray-700">Code Analysis in Progress</span>
             </div>
             
-            <h1 className="text-4xl md:text-5xl font-bold mb-4">
-              <span className="gradient-text">Analyzing Your Repository</span>
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-white">
+              Analyzing Your Code
             </h1>
             
-            <p className="text-xl text-gray-300 max-w-2xl mx-auto mb-4">
-              Our ASI-1 LLM is analyzing your project and discovering the best on-chain review agents.
+            <p className="text-xl text-gray-200 max-w-2xl mx-auto mb-4">
+              Running comprehensive security and quality analysis on your codebase.
             </p>
             
-            <p className="text-sm text-gray-400 break-all max-w-2xl mx-auto">
+            <p className="text-sm text-gray-300 break-all max-w-2xl mx-auto">
               Repository: {githubUrl}
             </p>
           </div>
 
           {/* Main Analysis Section */}
-          <div className="glass-morphism rounded-2xl p-8 mb-8">
+          <div className="github-card-elevated p-8 mb-8">
             {/* Current Status */}
             <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full mb-4 shadow-lg shadow-blue-500/25">
+              <div className="inline-flex items-center justify-center w-20 h-20 bg-gray-900 rounded-full mb-4">
                 {isComplete ? (
                   <CheckCircle className="w-10 h-10 text-white" />
                 ) : (
@@ -167,24 +167,24 @@ export default function AIAnalysis() {
                 )}
               </div>
               
-              <h2 className="text-2xl font-bold text-gray-100 mb-2">
+              <h2 className="text-2xl font-bold text-white mb-2">
                 {isComplete ? 'Analysis Complete!' : analysisStages[currentStage]?.name}
               </h2>
               
-              <p className="text-gray-400">
+              <p className="text-gray-200">
                 {isComplete ? 'Redirecting to results...' : analysisStages[currentStage]?.description}
               </p>
             </div>
 
             {/* Progress Bar */}
             <div className="mb-8">
-              <div className="flex justify-between text-sm text-gray-400 mb-2">
+              <div className="flex justify-between text-sm text-gray-200 mb-2">
                 <span>Progress</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div className="w-full bg-gray-700 rounded-full h-3">
+              <div className="w-full bg-gray-200 rounded-full h-3">
                 <div 
-                  className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500 ease-out"
+                  className="bg-gray-900 h-3 rounded-full transition-all duration-500 ease-out"
                   style={{ width: `${progress}%` }}
                 ></div>
               </div>
@@ -202,18 +202,18 @@ export default function AIAnalysis() {
                     key={stage.id}
                     className={`flex items-center p-4 rounded-lg border transition-all ${
                       isActive 
-                        ? 'bg-blue-500/10 border-blue-500/30 text-blue-300' 
+                        ? 'bg-blue-50 border-blue-200 text-blue-700' 
                         : isCompleted 
-                          ? 'bg-green-500/10 border-green-500/30 text-green-300'
-                          : 'bg-gray-800/30 border-gray-600/30 text-gray-400'
+                          ? 'bg-green-50 border-green-200 text-green-700'
+                          : 'bg-gray-50 border-gray-200 text-gray-300'
                     }`}
                   >
                     <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 ${
                       isActive 
-                        ? 'bg-blue-500' 
+                        ? 'bg-blue-600' 
                         : isCompleted 
-                          ? 'bg-green-500'
-                          : 'bg-gray-600'
+                          ? 'bg-green-600'
+                          : 'bg-gray-400'
                     }`}>
                       {isCompleted ? (
                         <CheckCircle className="w-4 h-4 text-white" />
@@ -232,27 +232,27 @@ export default function AIAnalysis() {
 
             {/* Discovered Agents Section */}
             {discoveredAgents.length > 0 && (
-              <div className="border-t border-gray-600/30 pt-6">
-                <h3 className="text-lg font-semibold text-gray-100 mb-4 flex items-center">
-                  <Bot className="w-5 h-5 mr-2 text-blue-400" />
-                  Discovered On-Chain Agents ({discoveredAgents.length})
+              <div className="border-t border-gray-200 pt-6">
+                <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                  <Bot className="w-5 h-5 mr-2 text-gray-200" />
+                  Available Analysis Agents ({discoveredAgents.length})
                 </h3>
                 
                 <div className="grid gap-3">
                   {discoveredAgents.map((agent) => (
-                    <div key={agent.id} className="flex items-center justify-between bg-gray-800/30 rounded-lg p-3 border border-gray-600/30">
+                    <div key={agent.id} className="flex items-center justify-between bg-gray-50 rounded-lg p-3 border border-gray-200">
                       <div className="flex items-center">
-                        <div className="w-10 h-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3">
-                          <Bot className="w-5 h-5 text-white" />
+                        <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center mr-3">
+                          <Bot className="w-5 h-5 text-gray-200" />
                         </div>
                         <div>
-                          <div className="font-medium text-gray-100">{agent.name}</div>
-                          <div className="text-sm text-gray-400">{agent.specialties.join(', ')}</div>
+                          <div className="font-medium text-white">{agent.name}</div>
+                          <div className="text-sm text-gray-200">{agent.specialties.join(', ')}</div>
                         </div>
                       </div>
                       <div className="text-right">
-                        <div className="text-sm font-medium text-blue-400">Metta Score: {agent.mettaScore}</div>
-                        <div className="text-xs text-gray-400">{agent.cost}</div>
+                        <div className="text-sm font-medium text-gray-700">Score: {agent.mettaScore}</div>
+                        <div className="text-xs text-gray-300">{agent.cost}</div>
                       </div>
                     </div>
                   ))}
@@ -261,18 +261,18 @@ export default function AIAnalysis() {
             )}
           </div>
 
-          {/* External API Integration Notes */}
-          <div className="glass-morphism rounded-xl p-6 border border-yellow-500/20">
-            <h3 className="text-lg font-semibold text-yellow-400 mb-3 flex items-center">
+          {/* Integration Notes */}
+          <div className="github-card-elevated p-6 border border-amber-200 bg-amber-50">
+            <h3 className="text-lg font-semibold text-amber-800 mb-3 flex items-center">
               <Zap className="w-5 h-5 mr-2" />
-              Integration Points (Development Notes)
+              Analysis Components
             </h3>
-            <div className="space-y-2 text-sm text-gray-300">
-              <p>• <strong>GitHub API:</strong> Repository analysis, file scanning, issue detection</p>
-              <p>• <strong>On-chain Agent Registry:</strong> Discovery of available AI agents on blockchain</p>
-              <p>• <strong>Metta Protocol API:</strong> Agent scoring and reputation system</p>
-              <p>• <strong>ASI-1 LLM API:</strong> Code analysis and issue identification</p>
-              <p>• <strong>Smart Contract:</strong> Agent selection and payment escrow</p>
+            <div className="space-y-2 text-sm text-amber-700">
+              <p>• <strong>Code Scanner:</strong> Static analysis and vulnerability detection</p>
+              <p>• <strong>Security Review:</strong> Best practices and security patterns</p>
+              <p>• <strong>Quality Metrics:</strong> Code complexity and maintainability analysis</p>
+              <p>• <strong>Dependency Check:</strong> Third-party library security assessment</p>
+              <p>• <strong>Report Generation:</strong> Comprehensive findings and recommendations</p>
             </div>
           </div>
         </div>
