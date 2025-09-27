@@ -84,8 +84,14 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     }
     
     modifier onlyVerified() {
-        require(AI_AGENT_ADDRESS == msg.sender, "Only AI Agent can call this");
-        require(organizations[msg.sender].isActive, "Organization not registered or inactive");
+        bool flag = false;
+        if(msg.sender == AI_AGENT_ADDRESS) {
+            flag = true;
+        }
+        if(organizations[msg.sender].isActive) {
+            flag = true;
+        }
+        require(flag, "Address not verified");
         _;
     }
     
