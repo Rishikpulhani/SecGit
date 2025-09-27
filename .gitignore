@@ -1,5 +1,4 @@
 # Environment variables
-.env
 
 # Virtual Environment
 venv/
@@ -29,7 +28,6 @@ wheels/
 *.egg
 
 # IDE
-.vscode/
 .idea/
 *.swp
 *.swo
@@ -43,3 +41,5 @@ Thumbs.db
 
 # Agent data
 *_data.json
+config.bat
+node_modules
