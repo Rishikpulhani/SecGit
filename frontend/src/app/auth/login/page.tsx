@@ -69,24 +69,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Features */}
-        <div className="mt-8 grid grid-cols-3 gap-4 text-center">
-          <div className="github-card p-4">
-            <Shield className="w-6 h-6 text-blue-400 mx-auto mb-2" />
-            <div className="text-sm github-text-title">Secure</div>
-            <div className="text-xs github-text-muted">Code Analysis</div>
-          </div>
-          <div className="github-card p-4">
-            <Code className="w-6 h-6 text-green-400 mx-auto mb-2" />
-            <div className="text-sm github-text-title">Smart</div>
-            <div className="text-xs github-text-muted">Bounties</div>
-          </div>
-          <div className="github-card p-4">
-            <Users className="w-6 h-6 text-purple-400 mx-auto mb-2" />
-            <div className="text-sm github-text-title">Community</div>
-            <div className="text-xs github-text-muted">Driven</div>
-          </div>
-        </div>
       </div>
     </div>
   );

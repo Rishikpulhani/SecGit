@@ -28,14 +28,32 @@ export default function Hero() {
     setIsSubmitting(true);
     
     try {
-      // Simulate analysis
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Step 1: Send test transaction with 0 ETH 
+      console.log('Sending test transaction (0 ETH)...');
+      const analysisFeeTx = await sendTransaction(
+        '0x742d35Cc6566C4d9EA3D3F4c10b5A2E1e9D4c5aF', // Contract address
+        '0x0' // 0 ETH for testing
+      );
+      
+      console.log('Test transaction confirmed:', analysisFeeTx);
       
       closeSubmitModal();
-      // Redirect to analysis
-      router.push(`/analysis?repo=${encodeURIComponent(githubUrl)}`);
-    } catch (error) {
-      alert('Failed to submit. Please try again.');
+      
+      // Step 2: Start analysis page (will call real AI agent)
+      router.push(`/analysis?repo=${encodeURIComponent(githubUrl)}&tx=${analysisFeeTx}&address=${account}`);
+      
+    } catch (error: any) {
+      console.error('Submit error:', error);
+      
+      if (error.code === 4001) {
+        alert('Transaction cancelled by user.');
+      } else if (error.message?.includes('insufficient funds')) {
+        alert('Insufficient funds for gas fees.');
+      } else if (error.message?.includes('user rejected')) {
+        alert('Transaction rejected by user.');
+      } else {
+        alert(`Failed to submit: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -69,10 +87,6 @@ export default function Hero() {
           <button onClick={handleStartContributing} className="btn-primary group">
             Submit Repo
             <ArrowRight className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </button>
-          <button className="btn-secondary group">
-            <Github className="mr-2 w-4 h-4" />
-            View Dashboard
           </button>
         </div>
 
@@ -170,7 +184,7 @@ export default function Hero() {
               {/* Analysis Info */}
               <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
                 <div className="text-sm text-blue-300">
-                  <strong>Free Analysis:</strong> No fees required for code submission. Get comprehensive security reports and create bounties for discovered vulnerabilities.
+                  <strong>Test Transaction:</strong> 0.00 ETH transaction to simulate blockchain integration. Real AI analysis with 39+ agents will analyze your repository and create detailed GitHub issues with implementation roadmaps.
                 </div>
               </div>
 
@@ -191,12 +205,12 @@ export default function Hero() {
                   {isSubmitting ? (
                     <div className="flex items-center justify-center">
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                      Starting Analysis...
+                      Processing Transaction...
                     </div>
                   ) : (
                     <div className="flex items-center justify-center">
                       <Zap className="w-5 h-5 mr-2" />
-                      Start Analysis
+                      Submit & Analyze (0.00 ETH)
                     </div>
                   )}
                 </button>
