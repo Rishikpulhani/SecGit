@@ -152,9 +152,11 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         require(_bounty > 0, "Bounty must be greater than 0");
         require(organizations[_org].availableRewards >= _bounty, "Insufficient organization funds");
         require(bytes(_githubIssueUrl).length > 0, "GitHub issue URL cannot be empty");
-        require(organizations[_org].aiCredits >= AI_COMPUTATION_COST, "Insufficient AI credits");
-        
-        organizations[_org].aiCredits -= AI_COMPUTATION_COST;
+
+        if(msg.sender == AI_AGENT_ADDRESS) {
+            require(organizations[_org].aiCredits >= AI_COMPUTATION_COST, "Insufficient AI credits");
+            organizations[_org].aiCredits -= AI_COMPUTATION_COST;
+        }
         emit AICreditsUsed(_org, AI_COMPUTATION_COST, organizations[_org].aiCredits);
         
         uint256 issueId = nextIssueId++;
