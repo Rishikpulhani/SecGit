@@ -3,8 +3,13 @@ import { Inter } from 'next/font/google'
 import '../styles/globals.css'
 import { WalletProvider } from '../contexts/WalletContext'
 import { AuthProvider } from '../contexts/AuthContext'
+import { SubmitProvider } from '../contexts/SubmitContext'
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ 
+  subsets: ['latin'],
+  weight: ['300', '400', '500', '600', '700'],
+  display: 'swap'
+})
 
 export const metadata: Metadata = {
   title: 'BountyHub - Secure Rewards for Open Source Contributors',
@@ -19,10 +24,12 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="scroll-smooth">
-      <body className={`${inter.className} enhanced-bg min-h-screen text-white`}>
+      <body className={`${inter.className} github-layout min-h-screen text-white`} style={{ backgroundColor: '#0d1117' }}>
         <AuthProvider>
           <WalletProvider>
-            {children}
+            <SubmitProvider>
+              {children}
+            </SubmitProvider>
           </WalletProvider>
         </AuthProvider>
       </body>

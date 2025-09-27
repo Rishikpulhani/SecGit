@@ -1,19 +1,50 @@
 'use client';
 
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowRight, Shield, Coins, Users, Github } from 'lucide-react';
+import { ArrowRight, Shield, Coins, Users, Github, X, Zap, CheckCircle } from 'lucide-react';
+import { useWallet } from '../contexts/WalletContext';
+import { useSubmit } from '../contexts/SubmitContext';
 
 export default function Hero() {
   const router = useRouter();
+  const { account, isConnected, connectWallet, sendTransaction } = useWallet();
+  const { showSubmitModal, openSubmitModal, closeSubmitModal } = useSubmit();
+  const [githubUrl, setGithubUrl] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleStartContributing = () => {
-    router.push('/submit');
+    openSubmitModal();
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!githubUrl || !isConnected) {
+      alert('Please enter a GitHub URL and connect your wallet');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      // Simulate analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      closeSubmitModal();
+      // Redirect to analysis
+      router.push(`/analysis?repo=${encodeURIComponent(githubUrl)}`);
+    } catch (error) {
+      alert('Failed to submit. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center px-4 py-20">
-
-      <div className="relative max-w-4xl mx-auto text-center">
+    <section className="relative min-h-screen flex items-center justify-center px-4 py-20" style={{ paddingTop: '6rem' }}>
+      <div className="w-full flex justify-center">
+        <div className="relative max-w-4xl w-full text-center">
         {/* Badge */}
         <div className="inline-flex items-center px-4 py-2 rounded-full bg-gray-800/60 border border-gray-600/40 mb-8 backdrop-blur-sm">
           <Shield className="w-4 h-4 mr-2 text-blue-400" />
@@ -21,7 +52,7 @@ export default function Hero() {
         </div>
 
         {/* Main headline */}
-        <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white">
+        <h1 className="text-4xl md:text-6xl font-bold mb-6 text-white text-center w-full">
           Secure Code Analysis
           <br />
           <span className="text-gray-200">for Development Teams</span>
@@ -71,7 +102,109 @@ export default function Hero() {
             <p className="text-gray-200">Detailed reports with actionable insights to improve code quality and maintainability</p>
           </div>
         </div> */}
+        </div>
       </div>
+
+      {/* Submit Repository Modal */}
+      {showSubmitModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="github-card max-w-2xl w-full p-8" style={{ backgroundColor: '#161b22' }}>
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-white">Submit Repository</h3>
+              <button
+                onClick={closeSubmitModal}
+                className="p-2 text-gray-400 hover:text-white transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <p className="text-gray-300 mb-6">
+              Enter your GitHub repository URL to start comprehensive security analysis and create bounties for discovered issues.
+            </p>
+
+            <form onSubmit={handleSubmit} className="space-y-6">
+              {/* GitHub URL Input */}
+              <div>
+                <label htmlFor="github-url" className="block text-sm font-medium text-white mb-2">
+                  GitHub Repository URL
+                </label>
+                <div className="relative">
+                  <Github className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="url"
+                    id="github-url"
+                    value={githubUrl}
+                    onChange={(e) => setGithubUrl(e.target.value)}
+                    placeholder="https://github.com/username/repository"
+                    className="w-full pl-12 pr-4 py-3 bg-gray-800 border border-gray-600 rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  />
+                </div>
+              </div>
+
+              {/* Wallet Connection Status */}
+              <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600">
+                {isConnected ? (
+                  <div className="flex items-center text-green-400">
+                    <CheckCircle className="w-5 h-5 mr-2" />
+                    <span>Wallet Connected: {account?.substring(0, 6)}...{account?.substring(account.length - 4)}</span>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="flex items-center text-yellow-400 mb-3">
+                      <Shield className="w-5 h-5 mr-2" />
+                      <span>Wallet connection required</span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={connectWallet}
+                      className="btn-github-secondary text-sm"
+                    >
+                      Connect Wallet
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Analysis Info */}
+              <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
+                <div className="text-sm text-blue-300">
+                  <strong>Free Analysis:</strong> No fees required for code submission. Get comprehensive security reports and create bounties for discovered vulnerabilities.
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <div className="flex space-x-4">
+                <button
+                  type="button"
+                  onClick={closeSubmitModal}
+                  className="btn-github-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting || !isConnected || !githubUrl}
+                  className="btn-github-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                      Starting Analysis...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Zap className="w-5 h-5 mr-2" />
+                      Start Analysis
+                    </div>
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </section>
   );
 }

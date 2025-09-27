@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Target, Clock, DollarSign, Github, ExternalLink, Send, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
+import { Target, Clock, DollarSign, Github, ExternalLink, Send, CheckCircle, XCircle, AlertCircle, Plus, Star, GitFork, Code, Shield, Bug, Zap, X } from 'lucide-react';
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
@@ -58,54 +58,9 @@ export default function SolverDashboard() {
     loadAssignments();
   }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'assigned': return 'text-blue-300 bg-blue-600/20 border-blue-500/30';
-      case 'active': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      case 'closed': return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const getSubmissionStatusColor = (status: string) => {
-    switch (status) {
-      case 'not_submitted': return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-      case 'submitted': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
-      case 'accepted': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      case 'rejected': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'high': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'medium': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
-      case 'low': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  const handleSubmitSolution = (assignment: Assignment) => {
-    setSelectedAssignment(assignment);
-    setPrUrl('');
-    setShowSubmitModal(true);
-  };
-
-  const handleSubmitPR = async () => {
-    if (!prUrl.trim() || !selectedAssignment) {
-      alert('Please enter a valid PR URL');
+  const handleSubmitSolution = async () => {
+    if (!selectedAssignment || !prUrl.trim()) {
+      alert('Please enter a valid Pull Request URL.');
       return;
     }
 
@@ -151,21 +106,76 @@ export default function SolverDashboard() {
     }
   };
 
-  const totalAssignments = assignments.length;
-  const activeAssignments = assignments.filter(a => a.status === 'assigned' || a.status === 'active').length;
-  const completedAssignments = assignments.filter(a => a.submissionStatus === 'accepted').length;
-  const totalEarnings = assignments
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'github-label-critical';
+      case 'high': return 'github-label-high';
+      case 'medium': return 'github-label-medium';
+      case 'low': return 'github-label-low';
+      default: return 'github-label-medium';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'security': return Shield;
+      case 'bug': return Bug;
+      case 'performance': return Zap;
+      default: return AlertCircle;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'security': return 'github-label-security';
+      case 'bug': return 'github-label-bug';
+      case 'performance': return 'github-label-enhancement';
+      default: return 'github-label-enhancement';
+    }
+  };
+
+  const getStatusBadge = (submissionStatus: string) => {
+    switch (submissionStatus) {
+      case 'not_submitted':
+        return <span className="github-state-open">Not Submitted</span>;
+      case 'submitted':
+        return <span className="px-2 py-1 text-xs font-medium text-white rounded-full" style={{ backgroundColor: '#d29922' }}>Submitted</span>;
+      case 'accepted':
+        return <span className="github-state-open" style={{ backgroundColor: '#238636' }}>Accepted</span>;
+      case 'rejected':
+        return <span className="px-2 py-1 text-xs font-medium text-white rounded-full" style={{ backgroundColor: '#da3633' }}>Rejected</span>;
+      default:
+        return <span className="github-counter">Unknown</span>;
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  // Stats calculations
+  const totalAssigned = assignments.length;
+  const activeIssues = assignments.filter(a => a.submissionStatus === 'not_submitted' || a.submissionStatus === 'submitted').length;
+  const completedIssues = assignments.filter(a => a.submissionStatus === 'accepted').length;
+  const totalEarned = assignments
     .filter(a => a.submissionStatus === 'accepted')
     .reduce((sum, a) => sum + a.issue.bounty, 0);
 
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-900">
+        <div className="github-layout">
           <Header />
-          <main className="pt-20 px-4 py-12">
-            <div className="max-w-6xl mx-auto text-center">
-              <div className="text-white">Loading your assignments...</div>
+          <main className="pt-16">
+            <div className="github-container py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="github-text-muted mt-2">Loading dashboard...</p>
+              </div>
             </div>
           </main>
         </div>
@@ -175,254 +185,338 @@ export default function SolverDashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-900">
+      <div className="github-layout">
         <Header />
         
-        <main className="pt-20 px-4 py-12">
-          <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">Solver Dashboard</h1>
-              <p className="text-gray-300">Track your assigned issues and submissions</p>
-            </div>
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <Target className="w-6 h-6 text-blue-400" />
-                  </div>
+        <main className="pt-16">
+          <div className="github-container">
+            {/* GitHub Repository Header */}
+            <div className="github-repo-header py-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <Target className="w-8 h-8 text-gray-400" />
                   <div>
-                    <div className="text-2xl font-bold text-white">{totalAssignments}</div>
-                    <div className="text-gray-300 text-sm">Total Assigned</div>
+                    <h1 className="github-h1 mb-0">
+                      <span className="github-text-link">{user?.login || 'Solver'}</span>
+                      <span className="text-gray-400 mx-2">/</span>
+                      <span>Solver Dashboard</span>
+                    </h1>
+                    <p className="github-text-muted text-sm">
+                      Track your assigned issues and submissions
+                    </p>
                   </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="btn-github-secondary text-sm">
+                    <Star className="w-4 h-4 mr-1" />
+                    Star
+                  </button>
+                  <button 
+                    onClick={() => router.push('/marketplace')}
+                    className="btn-github-primary text-sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Find Issues
+                  </button>
                 </div>
               </div>
 
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-yellow-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <Clock className="w-6 h-6 text-yellow-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-white">{activeAssignments}</div>
-                    <div className="text-gray-300 text-sm">Active</div>
-                  </div>
+              {/* GitHub Stats */}
+              <div className="flex items-center space-x-6 text-sm github-text-muted">
+                <div className="flex items-center space-x-1">
+                  <Code className="w-4 h-4" />
+                  <span>Solidity</span>
                 </div>
-              </div>
-
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <CheckCircle className="w-6 h-6 text-green-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-white">{completedAssignments}</div>
-                    <div className="text-gray-300 text-sm">Completed</div>
-                  </div>
+                <div className="flex items-center space-x-1">
+                  <Star className="w-4 h-4" />
+                  <span>0</span>
                 </div>
-              </div>
-
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-purple-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <DollarSign className="w-6 h-6 text-purple-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-white">{totalEarnings.toFixed(2)} ETH</div>
-                    <div className="text-gray-300 text-sm">Total Earned</div>
-                  </div>
+                <div className="flex items-center space-x-1">
+                  <GitFork className="w-4 h-4" />
+                  <span>0</span>
                 </div>
               </div>
             </div>
 
-            {/* Assignments List */}
-            {assignments.length === 0 ? (
-              <div className="github-card-elevated p-12 text-center">
-                <Target className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Assignments Yet</h3>
-                <p className="text-gray-300 mb-6">
-                  Browse the marketplace to find and assign issues to work on.
-                </p>
-                <button
-                  onClick={() => router.push('/marketplace')}
-                  className="btn-primary"
-                >
-                  Browse Issues
+            {/* GitHub Navigation Tabs */}
+            <div className="github-nav-tabs">
+              <div className="flex">
+                <button className="github-nav-tab active">
+                  <Target className="w-4 h-4 mr-2" />
+                  Assignments
+                  <span className="github-counter ml-2">{totalAssigned}</span>
                 </button>
               </div>
-            ) : (
-              <div className="space-y-6">
-                {assignments.map((assignment) => (
-                  <div key={assignment.id} className="github-card-elevated p-6">
-                    {/* Assignment Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                      <div className="mb-4 md:mb-0">
-                        <h3 className="text-xl font-bold text-white mb-2">{assignment.issue.title}</h3>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
-                          <span className="flex items-center">
-                            <Github className="w-4 h-4 mr-1" />
-                            {assignment.issue.repository}
-                          </span>
-                          <span>#{assignment.issue.issueNumber}</span>
-                          <span>Assigned: {formatDate(assignment.assignedAt)}</span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getSeverityColor(assignment.issue.severity)}`}>
-                          {assignment.issue.severity}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(assignment.status)}`}>
-                          {assignment.status}
-                        </span>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getSubmissionStatusColor(assignment.submissionStatus)}`}>
-                          {assignment.submissionStatus.replace('_', ' ')}
-                        </span>
-                      </div>
+            </div>
+
+            {/* Tab Content */}
+            <div className="py-6">
+              {/* Stats Cards - GitHub Style */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-white">{totalAssigned}</div>
+                      <div className="github-text-muted text-sm">Total Assigned</div>
                     </div>
-
-                    {/* Issue Description */}
-                    <p className="text-gray-300 mb-4 line-clamp-2">{assignment.issue.description}</p>
-
-                    {/* Issue Stats */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center space-x-6 text-sm text-gray-400">
-                        <span className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1" />
-                          Bounty: {assignment.issue.bounty} ETH
-                        </span>
-                        <span className="flex items-center">
-                          <Target className="w-4 h-4 mr-1" />
-                          Stake: {assignment.stakeAmount} ETH
-                        </span>
-                      </div>
-                      
-                      <a
-                        href={assignment.issue.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-white transition-colors"
-                        title="View Repository"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
+                    <Target className="w-8 h-8 text-blue-500" />
+                  </div>
+                </div>
+                
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-yellow-400">{activeIssues}</div>
+                      <div className="github-text-muted text-sm">Active</div>
                     </div>
+                    <Clock className="w-8 h-8 text-yellow-500" />
+                  </div>
+                </div>
+                
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">{completedIssues}</div>
+                      <div className="github-text-muted text-sm">Completed</div>
+                    </div>
+                    <CheckCircle className="w-8 h-8 text-green-500" />
+                  </div>
+                </div>
 
-                    {/* Submission Section */}
-                    <div className="border-t border-gray-700 pt-4">
-                      {assignment.submissionStatus === 'not_submitted' ? (
-                        <button
-                          onClick={() => handleSubmitSolution(assignment)}
-                          className="btn-primary"
-                        >
-                          <Send className="w-4 h-4 mr-2" />
-                          Submit Solution
-                        </button>
-                      ) : assignment.submissionStatus === 'submitted' ? (
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center text-yellow-300">
-                            <AlertCircle className="w-4 h-4 mr-2" />
-                            <span>Solution submitted, waiting for review</span>
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">{totalEarned.toFixed(2)} ETH</div>
+                      <div className="github-text-muted text-sm">Total Earned</div>
+                    </div>
+                    <DollarSign className="w-8 h-8 text-green-500" />
+                  </div>
+                </div>
+              </div>
+
+              {/* Assignments List */}
+              <div className="space-y-4">
+                {assignments.length === 0 ? (
+                  <div className="github-card p-12 text-center">
+                    <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                    <h3 className="github-h3 mb-2">No assignments yet</h3>
+                    <p className="github-text-muted mb-4">
+                      You haven't been assigned any issues yet. Browse the marketplace to find issues to solve.
+                    </p>
+                    <button 
+                      onClick={() => router.push('/marketplace')}
+                      className="btn-github-primary"
+                    >
+                      Browse Issues
+                    </button>
+                  </div>
+                ) : (
+                  assignments.map((assignment) => {
+                    const TypeIcon = getTypeIcon(assignment.issue.type);
+                    
+                    return (
+                      <div key={assignment.id} className="github-card-hover p-6">
+                        {/* Assignment Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                          <div>
+                            <h3 className="github-text-title text-lg mb-2 flex items-center">
+                              <TypeIcon className={`w-5 h-5 mr-2 ${assignment.issue.type === 'security' ? 'text-purple-500' : assignment.issue.type === 'bug' ? 'text-red-500' : 'text-yellow-500'}`} />
+                              {assignment.issue.title}
+                              <span className="github-issue-number ml-2">#{assignment.issue.issueNumber}</span>
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-3 text-sm github-text-muted">
+                              <span className="flex items-center">
+                                <Github className="w-4 h-4 mr-1" />
+                                {assignment.issue.repository}
+                              </span>
+                              <span>Assigned: {formatDate(assignment.assignedAt)}</span>
+                              <span>Stake: {assignment.stakeAmount} ETH</span>
+                              <span>Bounty: {assignment.issue.bounty} ETH</span>
+                            </div>
                           </div>
-                          {assignment.submissionUrl && (
+                          
+                          <div className="flex items-center space-x-2 mt-4 md:mt-0">
+                            <span className={`github-label ${getSeverityColor(assignment.issue.severity)}`}>
+                              {assignment.issue.severity}
+                            </span>
+                            {getStatusBadge(assignment.submissionStatus)}
+                          </div>
+                        </div>
+
+                        {/* Issue Description */}
+                        <p className="github-text-muted mb-4 line-clamp-2">{assignment.issue.description}</p>
+
+                        {/* Labels */}
+                        <div className="flex flex-wrap items-center gap-2 mb-4">
+                          <span className={`github-label ${getTypeColor(assignment.issue.type)}`}>
+                            {assignment.issue.type}
+                          </span>
+                        </div>
+
+                        {/* Submission Status */}
+                        {assignment.submissionStatus === 'submitted' && (
+                          <div className="github-card p-3 mb-4" style={{ backgroundColor: '#d292221a', borderColor: '#d29922' }}>
+                            <div className="flex items-center text-yellow-300">
+                              <Clock className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Solution submitted, waiting for review</span>
+                            </div>
+                            {assignment.submissionUrl && (
+                              <a
+                                href={assignment.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="github-text-link text-sm flex items-center mt-2"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                View PR
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {assignment.submissionStatus === 'accepted' && (
+                          <div className="github-card p-3 mb-4" style={{ backgroundColor: '#2386361a', borderColor: '#238636' }}>
+                            <div className="flex items-center text-green-300">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Solution accepted! Bounty distributed: {assignment.issue.bounty} ETH</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {assignment.submissionStatus === 'rejected' && (
+                          <div className="github-card p-3 mb-4" style={{ backgroundColor: '#da36331a', borderColor: '#da3633' }}>
+                            <div className="flex items-center text-red-300">
+                              <XCircle className="w-4 h-4 mr-2" />
+                              <span className="font-medium">Solution rejected. You can make improvements and resubmit.</span>
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Action Buttons */}
+                        <div className="border-t border-gray-700 pt-4">
+                          <div className="flex flex-col sm:flex-row gap-3">
                             <a
-                              href={assignment.submissionUrl}
+                              href={assignment.issue.repoUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
+                              className="btn-github-secondary text-sm flex items-center justify-center"
                             >
-                              View PR
+                              <Github className="w-4 h-4 mr-2" />
+                              View Repository
                             </a>
-                          )}
+                            
+                            {assignment.submissionStatus === 'not_submitted' && (
+                              <button
+                                onClick={() => {
+                                  setSelectedAssignment(assignment);
+                                  setShowSubmitModal(true);
+                                  setPrUrl('');
+                                }}
+                                className="btn-github-primary text-sm flex items-center justify-center"
+                              >
+                                <Send className="w-4 h-4 mr-2" />
+                                Submit Solution
+                              </button>
+                            )}
+                            
+                            {assignment.submissionUrl && (
+                              <a
+                                href={assignment.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="github-text-link text-sm flex items-center justify-center px-3 py-2 border border-gray-600 rounded"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-2" />
+                                View PR
+                              </a>
+                            )}
+                          </div>
                         </div>
-                      ) : assignment.submissionStatus === 'accepted' ? (
-                        <div className="flex items-center text-green-300">
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          <span>Solution accepted! Bounty earned: {assignment.issue.bounty} ETH</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-red-300">
-                          <XCircle className="w-4 h-4 mr-2" />
-                          <span>Solution rejected. You can resubmit with improvements.</span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))}
+                      </div>
+                    );
+                  })
+                )}
               </div>
-            )}
+            </div>
           </div>
         </main>
 
         {/* Submit Solution Modal */}
         {showSubmitModal && selectedAssignment && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="github-card-elevated max-w-lg w-full">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white">Submit Solution</h3>
-                  <button
-                    onClick={() => setShowSubmitModal(false)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
+            <div className="github-card max-w-2xl w-full p-6" style={{ backgroundColor: '#161b22' }}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="github-h3 mb-0">Submit Solution</h3>
+                <button
+                  onClick={() => setShowSubmitModal(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                {/* Issue Info */}
-                <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold text-white mb-2">{selectedAssignment.issue.title}</h4>
-                  <div className="flex items-center text-gray-400 text-sm">
-                    <Github className="w-4 h-4 mr-2" />
-                    <span>{selectedAssignment.issue.repository}</span>
-                    <span className="mx-2">•</span>
-                    <span>Bounty: {selectedAssignment.issue.bounty} ETH</span>
+              <div className="mb-6">
+                <h4 className="github-text-title text-lg mb-2">{selectedAssignment.issue.title}</h4>
+                <p className="github-text-muted text-sm mb-4">{selectedAssignment.issue.description}</p>
+                
+                <div className="github-card p-3 mb-6">
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="github-text-muted">Repository:</span>
+                    <span className="github-text-link">{selectedAssignment.issue.repository}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mb-2">
+                    <span className="github-text-muted">Issue:</span>
+                    <span className="text-white">#{selectedAssignment.issue.issueNumber}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="github-text-muted">Bounty:</span>
+                    <span className="text-green-400 font-medium">{selectedAssignment.issue.bounty} ETH</span>
                   </div>
                 </div>
+              </div>
 
-                {/* PR URL Input */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-200 mb-2">
-                    Pull Request URL *
-                  </label>
-                  <input
-                    type="url"
-                    value={prUrl}
-                    onChange={(e) => setPrUrl(e.target.value)}
-                    placeholder="https://github.com/owner/repo/pull/123"
-                    className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  />
-                  <p className="text-xs text-gray-400 mt-2">
-                    Submit a pull request with your solution to the repository
-                  </p>
-                </div>
+              <div className="mb-6">
+                <label htmlFor="prUrl" className="block text-sm font-medium github-text-title mb-2">
+                  Pull Request URL *
+                </label>
+                <input
+                  type="url"
+                  id="prUrl"
+                  value={prUrl}
+                  onChange={(e) => setPrUrl(e.target.value)}
+                  placeholder="https://github.com/owner/repo/pull/123"
+                  className="github-input w-full"
+                  required
+                />
+                <p className="mt-2 text-sm github-text-muted">
+                  Enter the URL of your pull request that addresses this issue.
+                </p>
+              </div>
 
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowSubmitModal(false)}
-                    className="flex-1 btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleSubmitPR}
-                    disabled={!prUrl.trim() || isSubmitting}
-                    className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isSubmitting ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Analyzing...
-                      </div>
-                    ) : (
-                      'Submit Solution'
-                    )}
-                  </button>
-                </div>
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowSubmitModal(false)}
+                  className="btn-github-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleSubmitSolution}
+                  disabled={!prUrl.trim() || isSubmitting}
+                  className="btn-github-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Submitting...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Send className="w-4 h-4 mr-2" />
+                      Submit Solution
+                    </div>
+                  )}
+                </button>
               </div>
             </div>
           </div>

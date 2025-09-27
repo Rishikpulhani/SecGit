@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Search, Filter, DollarSign, Clock, Users, Github, ExternalLink, Target, Zap, Shield, Bug } from 'lucide-react';
+import { Search, Filter, DollarSign, Clock, Users, Github, ExternalLink, Target, Zap, Shield, Bug, AlertCircle, Plus, CheckCircle, X } from 'lucide-react';
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useWallet } from '../../contexts/WalletContext';
@@ -30,7 +30,10 @@ const featuredIssues = [
     applicants: 3,
     tags: ['authentication', 'security', 'backend'],
     createdAt: '2024-01-15',
-    issueNumber: 15
+    issueNumber: 15,
+    author: 'gyanshupathak',
+    comments: 5,
+    status: 'open'
   },
   {
     id: 2,
@@ -45,27 +48,33 @@ const featuredIssues = [
     applicants: 2,
     tags: ['performance', 'memory', 'optimization'],
     createdAt: '2024-01-12',
-    issueNumber: 23
+    issueNumber: 23,
+    author: 'gyanshupathak',
+    comments: 3,
+    status: 'open'
   },
   {
     id: 3,
-    title: 'Add dark mode toggle functionality',
-    description: 'Implement a dark mode toggle that persists user preference and provides smooth transitions between light and dark themes.',
+    title: 'Add input validation for user registration',
+    description: 'User registration form lacks proper input validation, allowing malformed data to be submitted.',
     repository: 'gyanshupathak/SolVest',
     repoUrl: 'https://github.com/gyanshupathak/SolVest',
-    type: 'feature',
+    type: 'security',
     severity: 'medium',
     bounty: 0.4,
     estimatedHours: 6,
     applicants: 5,
-    tags: ['ui', 'frontend', 'theme'],
+    tags: ['validation', 'frontend', 'security'],
     createdAt: '2024-01-10',
-    issueNumber: 8
+    issueNumber: 8,
+    author: 'gyanshupathak',
+    comments: 2,
+    status: 'open'
   },
   {
     id: 4,
-    title: 'Database query optimization for user analytics',
-    description: 'Optimize slow-running queries in the analytics dashboard. Current queries take 5+ seconds for large datasets.',
+    title: 'Optimize database queries for user analytics',
+    description: 'Current analytics queries are slow and cause performance issues. Need to implement proper indexing and query optimization.',
     repository: 'gyanshupathak/SolVest',
     repoUrl: 'https://github.com/gyanshupathak/SolVest',
     type: 'performance',
@@ -73,115 +82,66 @@ const featuredIssues = [
     bounty: 0.5,
     estimatedHours: 10,
     applicants: 1,
-    tags: ['database', 'optimization', 'analytics'],
+    tags: ['database', 'performance', 'analytics'],
     createdAt: '2024-01-08',
-    issueNumber: 12
+    issueNumber: 12,
+    author: 'gyanshupathak',
+    comments: 7,
+    status: 'open'
   },
   {
     id: 5,
-    title: 'Implement input validation for API endpoints',
-    description: 'Add comprehensive input validation and sanitization for all API endpoints to prevent injection attacks.',
+    title: 'Implement rate limiting for API endpoints',
+    description: 'API endpoints are vulnerable to abuse without proper rate limiting. Need to implement rate limiting middleware.',
     repository: 'gyanshupathak/health_panel',
     repoUrl: 'https://github.com/gyanshupathak/health_panel',
     type: 'security',
     severity: 'critical',
-    bounty: 1.2,
-    estimatedHours: 16,
+    bounty: 1.0,
+    estimatedHours: 15,
     applicants: 4,
-    tags: ['security', 'api', 'validation'],
+    tags: ['api', 'security', 'middleware'],
     createdAt: '2024-01-05',
-    issueNumber: 31
-  },
-  {
-    id: 6,
-    title: 'Create responsive mobile navigation',
-    description: 'Design and implement a mobile-friendly navigation system with hamburger menu and smooth animations.',
-    repository: 'gyanshupathak/SolVest',
-    repoUrl: 'https://github.com/gyanshupathak/SolVest',
-    type: 'feature',
-    severity: 'low',
-    bounty: 0.3,
-    estimatedHours: 8,
-    applicants: 7,
-    tags: ['mobile', 'ui', 'navigation'],
-    createdAt: '2024-01-03',
-    issueNumber: 5
+    issueNumber: 31,
+    author: 'gyanshupathak',
+    comments: 9,
+    status: 'open'
   }
 ];
 
 export default function Marketplace() {
   const router = useRouter();
-  const { account, isConnected, connectWallet, sendTransaction } = useWallet();
+  const { account, isConnected, sendTransaction } = useWallet();
   const { user } = useAuth();
-  
-  const [showStakingModal, setShowStakingModal] = useState(false);
-  const [selectedIssue, setSelectedIssue] = useState<any>(null);
-  const [stakeAmount, setStakeAmount] = useState('0.1');
-  const [isStaking, setIsStaking] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
-  const [filterType, setFilterType] = useState('all');
-  const [filterSeverity, setFilterSeverity] = useState('all');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedSeverity, setSeverity] = useState('all');
+  const [selectedIssue, setSelectedIssue] = useState<any>(null);
+  const [showStakingModal, setShowStakingModal] = useState(false);
+  const [stakeAmount, setStakeAmount] = useState('0.5');
+  const [isStaking, setIsStaking] = useState(false);
 
-  // Filter issues based on search and filters
-  const filteredIssues = featuredIssues.filter(issue => {
-    const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         issue.repository.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesType = filterType === 'all' || issue.type === filterType;
-    const matchesSeverity = filterSeverity === 'all' || issue.severity === filterSeverity;
-    
-    return matchesSearch && matchesType && matchesSeverity;
-  });
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'high': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'medium': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
-      case 'low': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type) {
-      case 'security': return Shield;
-      case 'bug': return Bug;
-      case 'feature': return Zap;
-      case 'performance': return Target;
-      default: return Bug;
-    }
-  };
-
-  const handleAssignIssue = (issue: any) => {
-    setSelectedIssue(issue);
-    setStakeAmount('0.5'); // Fixed stake amount
-    setShowStakingModal(true);
-  };
-
+  // Switch to Base network
   const switchToBaseNetwork = async () => {
     if (!window.ethereum) {
-      throw new Error('MetaMask not found');
+      throw new Error('MetaMask is not installed. Please install MetaMask to use this feature.');
     }
 
-    const baseChainId = '0x2105'; // Base mainnet chain ID (8453 in decimal)
-    
     try {
       // Try to switch to Base network
       await window.ethereum.request({
         method: 'wallet_switchEthereumChain',
-        params: [{ chainId: baseChainId }],
+        params: [{ chainId: '0x2105' }], // Base mainnet chain ID
       });
     } catch (switchError: any) {
-      // If Base network is not added, add it
+      // If the network is not added to MetaMask, add it
       if (switchError.code === 4902) {
         try {
           await window.ethereum.request({
             method: 'wallet_addEthereumChain',
             params: [
               {
-                chainId: baseChainId,
+                chainId: '0x2105',
                 chainName: 'Base',
                 nativeCurrency: {
                   name: 'Ethereum',
@@ -194,13 +154,23 @@ export default function Marketplace() {
             ],
           });
         } catch (addError) {
-          throw new Error('Failed to add Base network to MetaMask');
+          throw new Error('Failed to add Base network to MetaMask. Please add it manually.');
         }
       } else {
-        throw new Error('Failed to switch to Base network');
+        throw new Error('Failed to switch to Base network. Please switch manually in MetaMask.');
       }
     }
   };
+
+  const filteredIssues = featuredIssues.filter(issue => {
+    const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         issue.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = selectedType === 'all' || issue.type === selectedType;
+    const matchesSeverity = selectedSeverity === 'all' || issue.severity === selectedSeverity;
+    
+    return matchesSearch && matchesType && matchesSeverity;
+  });
 
   const handleStakeAndAssign = async () => {
     if (!isConnected) {
@@ -267,64 +237,114 @@ export default function Marketplace() {
     }
   };
 
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'github-label-critical';
+      case 'high': return 'github-label-high';
+      case 'medium': return 'github-label-medium';
+      case 'low': return 'github-label-low';
+      default: return 'github-label-medium';
+    }
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'security': return Shield;
+      case 'bug': return Bug;
+      case 'performance': return Zap;
+      default: return AlertCircle;
+    }
+  };
+
+  const getTypeColor = (type: string) => {
+    switch (type) {
+      case 'security': return 'github-label-security';
+      case 'bug': return 'github-label-bug';
+      case 'performance': return 'github-label-enhancement';
+      default: return 'github-label-enhancement';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 30) return `${diffDays} days ago`;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  };
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-900">
+      <div className="github-layout">
         <Header />
         
-        <main className="pt-20 px-4 py-12">
-          <div className="max-w-7xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-4xl font-bold text-white mb-4">
-                <Target className="w-8 h-8 inline mr-3" />
-                Featured Issues
-              </h1>
-              <p className="text-gray-300 text-lg">
-                Discover high-value issues from premium repositories. Stake and solve to earn rewards.
-              </p>
-            </div>
-
-            {/* Search and Filters */}
-            <div className="github-card-elevated p-6 mb-8">
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                {/* Search */}
-                <div className="md:col-span-2">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <input
-                      type="text"
-                      placeholder="Search issues..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="w-full pl-10 pr-4 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+        <main className="pt-16">
+          <div className="github-container">
+            {/* GitHub Issues Header */}
+            <div className="github-repo-header py-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <Target className="w-8 h-8 text-gray-400" />
+                  <div>
+                    <h1 className="github-h1 mb-0">Issues</h1>
+                    <p className="github-text-muted text-sm">
+                      Solve security issues and earn bounties from open source repositories
+                    </p>
                   </div>
                 </div>
-
-                {/* Type Filter */}
-                <div>
-                  <select
-                    value={filterType}
-                    onChange={(e) => setFilterType(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                <div className="flex items-center space-x-2">
+                  <button className="btn-github-secondary text-sm">
+                    <Filter className="w-4 h-4 mr-1" />
+                    Filters
+                  </button>
+                  <button 
+                    onClick={() => router.push('/submit')}
+                    className="btn-github-primary text-sm"
                   >
-                    <option value="all">All Types</option>
+                    <Plus className="w-4 h-4 mr-1" />
+                    New Issue
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* GitHub Search and Filters */}
+            <div className="mb-6">
+              <div className="flex flex-col md:flex-row gap-4 mb-4">
+                {/* Search Bar */}
+                <div className="flex-1 relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search issues..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="github-search pl-10 pr-4 py-2 w-full"
+                  />
+                </div>
+                
+                {/* Filter Dropdowns */}
+                <div className="flex gap-2">
+                  <select
+                    value={selectedType}
+                    onChange={(e) => setSelectedType(e.target.value)}
+                    className="github-select py-2 pr-8"
+                  >
+                    <option value="all">All types</option>
                     <option value="security">Security</option>
                     <option value="bug">Bug</option>
-                    <option value="feature">Feature</option>
                     <option value="performance">Performance</option>
                   </select>
-                </div>
-
-                {/* Severity Filter */}
-                <div>
+                  
                   <select
-                    value={filterSeverity}
-                    onChange={(e) => setFilterSeverity(e.target.value)}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-md text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    value={selectedSeverity}
+                    onChange={(e) => setSeverity(e.target.value)}
+                    className="github-select py-2 pr-8"
                   >
-                    <option value="all">All Severities</option>
+                    <option value="all">All severities</option>
                     <option value="critical">Critical</option>
                     <option value="high">High</option>
                     <option value="medium">Medium</option>
@@ -332,195 +352,205 @@ export default function Marketplace() {
                   </select>
                 </div>
               </div>
-            </div>
 
-            {/* Issues Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {filteredIssues.map((issue) => {
-                const TypeIcon = getTypeIcon(issue.type);
-                
-                return (
-                  <div key={issue.id} className="github-card-elevated p-6 hover:scale-[1.02] transition-all duration-300">
-                    {/* Issue Header */}
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center space-x-3">
-                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                          issue.type === 'security' ? 'bg-red-600/20 text-red-400' :
-                          issue.type === 'bug' ? 'bg-orange-600/20 text-orange-400' :
-                          issue.type === 'feature' ? 'bg-blue-600/20 text-blue-400' :
-                          'bg-purple-600/20 text-purple-400'
-                        }`}>
-                          <TypeIcon className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(issue.severity)}`}>
-                            {issue.severity}
-                          </span>
-                        </div>
-                      </div>
-                      <a
-                        href={issue.repoUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-gray-400 hover:text-white transition-colors"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </div>
-
-                    {/* Repository */}
-                    <div className="flex items-center text-gray-400 text-sm mb-3">
-                      <Github className="w-4 h-4 mr-2" />
-                      <span>{issue.repository}</span>
-                      <span className="mx-2">•</span>
-                      <span>#{issue.issueNumber}</span>
-                    </div>
-
-                    {/* Title and Description */}
-                    <h3 className="text-xl font-bold text-white mb-3 line-clamp-2">{issue.title}</h3>
-                    <p className="text-gray-300 mb-4 line-clamp-3">{issue.description}</p>
-
-                    {/* Tags */}
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {issue.tags.map((tag, index) => (
-                        <span key={index} className="px-2 py-1 bg-gray-700/50 text-gray-300 text-xs rounded-md">
-                          {tag}
-                        </span>
-                      ))}
-                    </div>
-
-                    {/* Stats */}
-                    <div className="flex items-center justify-between mb-6">
-                      <div className="flex items-center space-x-4 text-sm text-gray-400">
-                        <span className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1" />
-                          {issue.bounty} ETH
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {issue.estimatedHours}h
-                        </span>
-                        <span className="flex items-center">
-                          <Users className="w-4 h-4 mr-1" />
-                          {issue.applicants}
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Action Button */}
-                    <button
-                      onClick={() => handleAssignIssue(issue)}
-                      className="w-full btn-primary"
-                    >
-                      <Target className="w-4 h-4 mr-2" />
-                      Assign & Stake
-                    </button>
-                  </div>
-                );
-              })}
-            </div>
-
-            {filteredIssues.length === 0 && (
-              <div className="text-center py-12">
-                <Search className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Issues Found</h3>
-                <p className="text-gray-400">Try adjusting your search or filters</p>
+              {/* GitHub Issue Counter */}
+              <div className="flex items-center justify-between text-sm github-text-muted mb-4">
+                <div className="flex items-center space-x-4">
+                  <span className="flex items-center">
+                    <CheckCircle className="w-4 h-4 mr-1 github-icon-open" />
+                    {filteredIssues.length} Open
+                  </span>
+                  <span className="flex items-center">
+                    <X className="w-4 h-4 mr-1 github-icon-closed" />
+                    0 Closed
+                  </span>
+                </div>
               </div>
-            )}
+            </div>
+
+            {/* GitHub Issues List */}
+            <div className="github-card">
+              {filteredIssues.length === 0 ? (
+                <div className="p-12 text-center">
+                  <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                  <h3 className="github-h3 mb-2">No issues found</h3>
+                  <p className="github-text-muted">
+                    Try adjusting your search or filter criteria.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  {filteredIssues.map((issue, index) => {
+                    const TypeIcon = getTypeIcon(issue.type);
+                    
+                    return (
+                      <div key={issue.id} className={`github-issue-item ${index === filteredIssues.length - 1 ? 'border-b-0' : ''}`}>
+                        <div className="flex items-start space-x-3">
+                          {/* Issue Icon */}
+                          <CheckCircle className="w-4 h-4 mt-1 github-icon-open flex-shrink-0" />
+                          
+                          {/* Issue Content */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-start justify-between">
+                              <div className="flex-1">
+                                {/* Issue Title */}
+                                <h3 className="github-text-title text-base font-medium hover:text-blue-400 cursor-pointer mb-1">
+                                  {issue.title}
+                                  <span className="github-issue-number ml-1">#{issue.issueNumber}</span>
+                                </h3>
+                                
+                                {/* Issue Meta */}
+                                <div className="flex flex-wrap items-center gap-2 text-sm github-text-muted mb-2">
+                                  <span>opened {formatDate(issue.createdAt)} by</span>
+                                  <span className="github-text-link">{issue.author}</span>
+                                  <span>•</span>
+                                  <span>{issue.comments} comments</span>
+                                  <span>•</span>
+                                  <span className="github-text-link flex items-center">
+                                    <Github className="w-3 h-3 mr-1" />
+                                    {issue.repository}
+                                  </span>
+                                </div>
+                                
+                                {/* Issue Description */}
+                                <p className="github-text-muted text-sm mb-3 line-clamp-2">
+                                  {issue.description}
+                                </p>
+                                
+                                {/* Labels and Tags */}
+                                <div className="flex flex-wrap items-center gap-2 mb-3">
+                                  <span className={`github-label ${getTypeColor(issue.type)}`}>
+                                    {issue.type}
+                                  </span>
+                                  <span className={`github-label ${getSeverityColor(issue.severity)}`}>
+                                    {issue.severity}
+                                  </span>
+                                  {issue.tags.slice(0, 2).map((tag, index) => (
+                                    <span key={index} className="github-label" style={{ backgroundColor: '#6366f1', color: 'white' }}>
+                                      {tag}
+                                    </span>
+                                  ))}
+                                </div>
+                                
+                                {/* Bounty Info */}
+                                <div className="flex items-center gap-4 text-sm">
+                                  <span className="flex items-center github-text-muted">
+                                    <DollarSign className="w-4 h-4 mr-1 text-green-500" />
+                                    <span className="text-green-400 font-medium">{issue.bounty} ETH</span>
+                                    <span className="ml-1">bounty</span>
+                                  </span>
+                                  <span className="flex items-center github-text-muted">
+                                    <Clock className="w-4 h-4 mr-1" />
+                                    {issue.estimatedHours}h estimated
+                                  </span>
+                                  <span className="flex items-center github-text-muted">
+                                    <Users className="w-4 h-4 mr-1" />
+                                    {issue.applicants} interested
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Action Button */}
+                              <div className="flex-shrink-0 ml-4">
+                                <button
+                                  onClick={() => {
+                                    setSelectedIssue(issue);
+                                    setShowStakingModal(true);
+                                  }}
+                                  className="btn-github-primary text-sm"
+                                >
+                                  Assign
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </main>
 
         {/* Staking Modal */}
         {showStakingModal && selectedIssue && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-            <div className="github-card-elevated max-w-md w-full">
-              <div className="p-6">
-                <div className="flex justify-between items-center mb-6">
-                  <h3 className="text-xl font-bold text-white">Stake & Assign Issue</h3>
-                  <button
-                    onClick={() => setShowStakingModal(false)}
-                    className="text-gray-400 hover:text-white transition-colors"
-                  >
-                    ✕
-                  </button>
-                </div>
+            <div className="github-card max-w-md w-full p-6" style={{ backgroundColor: '#161b22' }}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="github-h3 mb-0">Stake and Assign Issue</h3>
+                <button
+                  onClick={() => setShowStakingModal(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                {/* Issue Info */}
-                <div className="bg-gray-800/50 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold text-white mb-2">{selectedIssue.title}</h4>
-                  <div className="flex items-center text-gray-400 text-sm mb-2">
-                    <Github className="w-4 h-4 mr-2" />
-                    <span>{selectedIssue.repository}</span>
+              <div className="mb-6">
+                <h4 className="github-text-title text-lg mb-2">{selectedIssue.title}</h4>
+                <p className="github-text-muted text-sm mb-4">{selectedIssue.description}</p>
+                
+                <div className="github-card p-3 mb-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="github-text-muted">Repository:</span>
+                    <span className="github-text-link">{selectedIssue.repository}</span>
                   </div>
-                  <div className="flex items-center justify-between text-sm">
-                    <span className="text-gray-300">Bounty: {selectedIssue.bounty} ETH</span>
-                    <span className={`px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(selectedIssue.severity)}`}>
-                      {selectedIssue.severity}
-                    </span>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="github-text-muted">Bounty:</span>
+                    <span className="text-green-400 font-medium">{selectedIssue.bounty} ETH</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="github-text-muted">Estimated time:</span>
+                    <span className="text-white">{selectedIssue.estimatedHours} hours</span>
                   </div>
                 </div>
+              </div>
 
-                {/* Stake Amount */}
-                <div className="mb-6">
-                  <label className="block text-sm font-semibold text-gray-200 mb-2">
-                    Stake Amount (ETH on Base)
-                  </label>
-                  <input
-                    type="text"
-                    value="0.5"
-                    readOnly
-                    className="w-full px-4 py-3 bg-gray-700/50 border border-gray-600 rounded-md text-gray-300 cursor-not-allowed"
-                  />
-                  <div className="mt-2 p-3 bg-blue-600/10 border border-blue-500/30 rounded-md">
-                    <div className="text-sm text-blue-300">
-                      <strong>Fixed Stake:</strong> Standard 0.5 ETH stake amount for all issues. 
-                      Transaction processed on Base network with promotional 0.00 ETH fee.
+              <div className="mb-6">
+                <label htmlFor="stake" className="block text-sm font-medium github-text-title mb-2">
+                  Stake Amount (ETH on Base)
+                </label>
+                <input
+                  type="text"
+                  id="stake"
+                  value="0.5"
+                  readOnly
+                  className="github-input bg-gray-700 cursor-not-allowed"
+                />
+                <div className="mt-2 p-3 github-card text-sm">
+                  <div className="text-blue-300">
+                    <strong>Fixed Stake:</strong> Standard 0.5 ETH stake amount for all issues. 
+                    Transaction processed on Base network with promotional 0.00 ETH fee.
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowStakingModal(false)}
+                  className="btn-github-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStakeAndAssign}
+                  disabled={isStaking || !isConnected}
+                  className="btn-github-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isStaking ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Staking...
                     </div>
-                  </div>
-                  <p className="text-xs text-gray-400 mt-2">
-                    Stake is refunded upon successful completion + you earn the bounty
-                  </p>
-                </div>
-
-                {/* Wallet Status */}
-                {!isConnected ? (
-                  <div className="text-center mb-6">
-                    <div className="p-3 bg-yellow-600/20 border border-yellow-500/30 rounded-lg text-yellow-300 mb-4">
-                      Please connect your wallet to stake
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Target className="w-4 h-4 mr-2" />
+                      Stake & Assign
                     </div>
-                    <button onClick={connectWallet} className="btn-secondary w-full">
-                      Connect Wallet
-                    </button>
-                  </div>
-                ) : (
-                  <div className="p-3 bg-green-600/20 border border-green-500/30 rounded-lg text-green-300 mb-6 text-center">
-                    Wallet Connected: {account?.substring(0, 6)}...{account?.substring(account.length - 4)}
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex space-x-3">
-                  <button
-                    onClick={() => setShowStakingModal(false)}
-                    className="flex-1 btn-secondary"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    onClick={handleStakeAndAssign}
-                    disabled={!isConnected || isStaking}
-                    className="flex-1 btn-primary disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {isStaking ? (
-                      <div className="flex items-center justify-center">
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Staking...
-                      </div>
-                    ) : (
-                      'Stake & Assign'
-                    )}
-                  </button>
-                </div>
+                  )}
+                </button>
               </div>
             </div>
           </div>

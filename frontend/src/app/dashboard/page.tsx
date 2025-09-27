@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Target, ExternalLink, Clock, CheckCircle, XCircle, DollarSign, Github, Calendar, Users, Eye, ThumbsUp, ThumbsDown } from 'lucide-react';
+import { Target, ExternalLink, Clock, CheckCircle, XCircle, DollarSign, Github, Calendar, Users, Eye, ThumbsUp, ThumbsDown, Plus, Star, GitFork, Code, AlertCircle, Bug, Shield } from 'lucide-react';
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
@@ -34,6 +34,9 @@ export default function Dashboard() {
   const [submissions, setSubmissions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('bounties');
+
+  // Check if user is repository owner (gyanshupathak)
+  const isRepoOwner = user?.login === 'gyanshupathak';
 
   useEffect(() => {
     // Load bounties and submissions from localStorage
@@ -123,37 +126,10 @@ export default function Dashboard() {
       }
     };
 
-    loadData();
+    if (user) {
+      loadData();
+    }
   }, [user]);
-
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'high': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      case 'medium': return 'text-yellow-300 bg-yellow-600/20 border-yellow-500/30';
-      case 'low': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'active': return 'text-green-300 bg-green-600/20 border-green-500/30';
-      case 'completed': return 'text-blue-300 bg-blue-600/20 border-blue-500/30';
-      case 'cancelled': return 'text-red-300 bg-red-600/20 border-red-500/30';
-      default: return 'text-gray-300 bg-gray-600/20 border-gray-500/30';
-    }
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
 
   const handleAcceptSubmission = (submissionId: number) => {
     const updatedSubmissions = submissions.map(submission => 
@@ -210,25 +186,55 @@ export default function Dashboard() {
     );
     localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
     
-    alert('Submission rejected. Solver can resubmit with improvements.');
+    alert('Submission rejected. Solver can make improvements and resubmit.');
   };
 
-  const totalBountiesCreated = bounties.length;
-  const totalBountyValue = bounties.reduce((sum, bounty) => sum + parseFloat(bounty.totalBounty), 0);
-  const activeBounties = bounties.filter(b => b.status === 'active').length;
-  
-  // Show submissions tab only for gyanshupathak
-  const isRepoOwner = user?.login === 'gyanshupathak';
-  const pendingSubmissions = submissions.filter(s => s.submissionStatus === 'submitted').length;
+  const getSeverityColor = (severity: string) => {
+    switch (severity) {
+      case 'critical': return 'github-label-critical';
+      case 'high': return 'github-label-high';
+      case 'medium': return 'github-label-medium';
+      case 'low': return 'github-label-low';
+      default: return 'github-label-medium';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'submitted': return 'bg-yellow-600 text-white border-yellow-500';
+      case 'accepted': return 'bg-green-600 text-white border-green-500';
+      case 'rejected': return 'bg-red-600 text-white border-red-500';
+      default: return 'bg-gray-600 text-white border-gray-500';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  };
+
+  const getTypeIcon = (type: string) => {
+    switch (type) {
+      case 'security': return Shield;
+      case 'bug': return Bug;
+      default: return AlertCircle;
+    }
+  };
 
   if (loading) {
     return (
       <ProtectedRoute>
-        <div className="min-h-screen bg-gray-900">
+        <div className="github-layout">
           <Header />
-          <main className="pt-20 px-4 py-12">
-            <div className="max-w-6xl mx-auto text-center">
-              <div className="text-white">Loading your dashboard...</div>
+          <main className="pt-16">
+            <div className="github-container py-8">
+              <div className="text-center">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500 mx-auto"></div>
+                <p className="github-text-muted mt-2">Loading dashboard...</p>
+              </div>
             </div>
           </main>
         </div>
@@ -238,335 +244,352 @@ export default function Dashboard() {
 
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gray-900">
+      <div className="github-layout">
         <Header />
         
-        <main className="pt-20 px-4 py-12">
-          <div className="max-w-6xl mx-auto">
-            {/* Header */}
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-white mb-2">
-                {isRepoOwner ? 'Repository Dashboard' : 'Bounty Dashboard'}
-              </h1>
-              <p className="text-gray-300">
-                {isRepoOwner ? 'Manage your repositories, bounties and review submissions' : 'Manage your security bounties and track progress'}
-              </p>
-            </div>
-
-            {/* Tabs (only show if repo owner) */}
-            {isRepoOwner && (
-              <div className="mb-8">
-                <div className="border-b border-gray-700">
-                  <nav className="-mb-px flex space-x-8">
-                    <button
-                      onClick={() => setActiveTab('bounties')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === 'bounties'
-                          ? 'border-blue-500 text-blue-400'
-                          : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-                      }`}
-                    >
-                      My Bounties ({totalBountiesCreated})
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('submissions')}
-                      className={`py-2 px-1 border-b-2 font-medium text-sm transition-colors ${
-                        activeTab === 'submissions'
-                          ? 'border-blue-500 text-blue-400'
-                          : 'border-transparent text-gray-400 hover:text-gray-300 hover:border-gray-300'
-                      }`}
-                    >
-                      Submissions ({submissions.length})
-                      {pendingSubmissions > 0 && (
-                        <span className="ml-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-red-100 bg-red-600 rounded-full">
-                          {pendingSubmissions}
-                        </span>
-                      )}
-                    </button>
-                  </nav>
-                </div>
-              </div>
-            )}
-
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <Target className="w-6 h-6 text-blue-400" />
-                  </div>
+        <main className="pt-16">
+          <div className="github-container">
+            {/* GitHub Repository Header */}
+            <div className="github-repo-header py-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center space-x-3">
+                  <Github className="w-8 h-8 text-gray-400" />
                   <div>
-                    <div className="text-2xl font-bold text-white">{totalBountiesCreated}</div>
-                    <div className="text-gray-300 text-sm">Total Bounties</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-green-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <DollarSign className="w-6 h-6 text-green-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-white">{totalBountyValue.toFixed(2)} ETH</div>
-                    <div className="text-gray-300 text-sm">Total Value</div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="github-card-elevated p-6">
-                <div className="flex items-center">
-                  <div className="w-12 h-12 bg-yellow-600/20 rounded-lg flex items-center justify-center mr-4">
-                    <Clock className="w-6 h-6 text-yellow-400" />
-                  </div>
-                  <div>
-                    <div className="text-2xl font-bold text-white">{activeBounties}</div>
-                    <div className="text-gray-300 text-sm">Active Bounties</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Content based on active tab */}
-            {(!isRepoOwner || activeTab === 'bounties') && (
-              <>
-                {/* Bounties List */}
-                {bounties.length === 0 ? (
-              <div className="github-card-elevated p-12 text-center">
-                <Target className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                <h3 className="text-xl font-bold text-white mb-2">No Bounties Created Yet</h3>
-                <p className="text-gray-300 mb-6">
-                  Start by submitting a repository for analysis to create your first bounty.
-                </p>
-                <button
-                  onClick={() => router.push('/submit')}
-                  className="btn-primary"
-                >
-                  Submit Repository
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                {bounties.map((bounty) => (
-                  <div key={bounty.id} className="github-card-elevated p-6">
-                    {/* Bounty Header */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                      <div className="mb-4 md:mb-0">
-                        <h3 className="text-xl font-bold text-white mb-2 flex items-center">
-                          <Github className="w-5 h-5 mr-2" />
-                          {bounty.repository.split('/').slice(-2).join('/')}
-                        </h3>
-                        <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
-                          <span className="flex items-center">
-                            <Calendar className="w-4 h-4 mr-1" />
-                            {formatDate(bounty.createdAt)}
-                          </span>
-                          <span className="flex items-center">
-                            <Users className="w-4 h-4 mr-1" />
-                            {bounty.issues.length} issues
-                          </span>
-                          <span className="flex items-center">
-                            <DollarSign className="w-4 h-4 mr-1" />
-                            {bounty.totalBounty} ETH
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center space-x-3">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(bounty.status)}`}>
-                          {bounty.status.charAt(0).toUpperCase() + bounty.status.slice(1)}
-                        </span>
-                        <a
-                          href={bounty.repository}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="p-2 text-gray-400 hover:text-white transition-colors"
-                          title="View Repository"
-                        >
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      </div>
-                    </div>
-
-                    {/* Issues Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {bounty.issues.map((issue) => (
-                        <div key={issue.id} className="bg-gray-800/50 border border-gray-700 rounded-lg p-4">
-                          <div className="flex items-start justify-between mb-3">
-                            <span className={`px-2 py-1 rounded text-xs font-medium border ${getSeverityColor(issue.severity)}`}>
-                              {issue.severity}
-                            </span>
-                            {issue.githubIssueUrl && (
-                              <a
-                                href={issue.githubIssueUrl}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-green-400 hover:text-green-300 transition-colors"
-                                title={`GitHub Issue #${issue.githubIssueNumber}`}
-                              >
-                                <ExternalLink className="w-4 h-4" />
-                              </a>
-                            )}
-                          </div>
-                          
-                          <h4 className="font-semibold text-white text-sm mb-2 line-clamp-2">
-                            {issue.title}
-                          </h4>
-                          
-                          <div className="flex items-center justify-between text-xs text-gray-400">
-                            <span className="capitalize">{issue.type}</span>
-                            <span className="font-medium">{issue.suggestedBounty} ETH</span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Transaction Info */}
-                    <div className="mt-6 pt-4 border-t border-gray-700">
-                      <div className="text-xs text-gray-400">
-                        <span className="mr-4">
-                          Transaction: 
-                          <span className="font-mono ml-1">
-                            {bounty.transactionHash.substring(0, 10)}...{bounty.transactionHash.substring(bounty.transactionHash.length - 8)}
-                          </span>
-                        </span>
-                        <span>Platform Fee: {bounty.platformFee} ETH</span>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-              </>
-            )}
-
-            {/* Submissions Tab Content */}
-            {isRepoOwner && activeTab === 'submissions' && (
-              <div className="space-y-6">
-                {/* Debug Info and Refresh Button */}
-                <div className="github-card-elevated p-4 bg-blue-600/10 border border-blue-500/30">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm text-blue-300">
-                      <strong>Debug:</strong> Found {submissions.length} submissions in shared pool
-                    </div>
-                    <button
-                      onClick={() => window.location.reload()}
-                      className="btn-secondary text-sm py-1 px-3"
-                    >
-                      Refresh Data
-                    </button>
-                  </div>
-                </div>
-
-                {submissions.length === 0 ? (
-                  <div className="github-card-elevated p-12 text-center">
-                    <Eye className="w-16 h-16 text-gray-500 mx-auto mb-4" />
-                    <h3 className="text-xl font-bold text-white mb-2">No Submissions Yet</h3>
-                    <p className="text-gray-300">
-                      Submissions from solvers will appear here for your review.
+                    <h1 className="github-h1 mb-0">
+                      <span className="github-text-link">{user?.login || 'User'}</span>
+                      <span className="text-gray-400 mx-2">/</span>
+                      <span>SecGit</span>
+                    </h1>
+                    <p className="github-text-muted text-sm">
+                      Security auditing and bounty management platform
                     </p>
-                    <div className="mt-4 text-sm text-gray-400">
-                      <p>Troubleshooting:</p>
-                      <ul className="list-disc list-inside mt-2">
-                        <li>Make sure solver has submitted PRs from the solver dashboard</li>
-                        <li>Try refreshing this page</li>
-                        <li>Check that submissions are for gyanshupathak repositories</li>
-                      </ul>
-                    </div>
                   </div>
-                ) : (
-                  submissions.map((submission) => (
-                    <div key={submission.id} className="github-card-elevated p-6">
-                      {/* Submission Header */}
-                      <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
-                        <div className="mb-4 md:mb-0">
-                          <h3 className="text-xl font-bold text-white mb-2">{submission.issue.title}</h3>
-                          <div className="flex flex-wrap items-center gap-3 text-sm text-gray-300">
-                            <span className="flex items-center">
-                              <Github className="w-4 h-4 mr-1" />
-                              {submission.issue.repository}
-                            </span>
-                            <span>#{submission.issue.issueNumber}</span>
-                            <span>Stake: {submission.stakeAmount} ETH</span>
-                            <span>Bounty: {submission.issue.bounty} ETH</span>
-                          </div>
-                        </div>
-                        
-                        <div className="flex items-center space-x-3">
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getSeverityColor(submission.issue.severity)}`}>
-                            {submission.issue.severity}
-                          </span>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(submission.submissionStatus)}`}>
-                            {submission.submissionStatus.replace('_', ' ')}
-                          </span>
-                        </div>
-                      </div>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <button className="btn-github-secondary text-sm">
+                    <Star className="w-4 h-4 mr-1" />
+                    Star
+                  </button>
+                  <button 
+                    onClick={() => router.push('/submit')}
+                    className="btn-github-primary text-sm"
+                  >
+                    <Plus className="w-4 h-4 mr-1" />
+                    Submit Code
+                  </button>
+                </div>
+              </div>
 
-                      {/* Issue Description */}
-                      <p className="text-gray-300 mb-4 line-clamp-2">{submission.issue.description}</p>
+              {/* GitHub Stats */}
+              <div className="flex items-center space-x-6 text-sm github-text-muted">
+                <div className="flex items-center space-x-1">
+                  <Code className="w-4 h-4" />
+                  <span>TypeScript</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Star className="w-4 h-4" />
+                  <span>0</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <GitFork className="w-4 h-4" />
+                  <span>0</span>
+                </div>
+              </div>
+            </div>
 
-                      {/* Solver Info */}
-                      <div className="bg-gray-800/50 rounded-lg p-4 mb-4">
-                        <h4 className="font-semibold text-white mb-2">Solver Details</h4>
-                        <div className="flex items-center justify-between text-sm">
-                          <span className="text-gray-300">
-                            Assigned to: {submission.assignedTo?.substring(0, 6)}...{submission.assignedTo?.substring(submission.assignedTo.length - 4)}
-                          </span>
-                          <span className="text-gray-400">
-                            Submitted: {submission.submittedAt ? formatDate(submission.submittedAt) : 'N/A'}
-                          </span>
-                        </div>
-                        {submission.submissionUrl && (
-                          <div className="mt-2">
-                            <a
-                              href={submission.submissionUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="text-blue-400 hover:text-blue-300 transition-colors text-sm flex items-center"
-                            >
-                              <ExternalLink className="w-4 h-4 mr-1" />
-                              View Pull Request
-                            </a>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Action Buttons */}
-                      <div className="border-t border-gray-700 pt-4">
-                        {submission.submissionStatus === 'submitted' ? (
-                          <div className="flex space-x-3">
-                            <button
-                              onClick={() => handleRejectSubmission(submission.id)}
-                              className="flex-1 flex items-center justify-center px-4 py-2 bg-red-600/20 border border-red-500/30 rounded text-red-300 hover:bg-red-600/30 transition-colors"
-                            >
-                              <ThumbsDown className="w-4 h-4 mr-2" />
-                              Reject
-                            </button>
-                            <button
-                              onClick={() => handleAcceptSubmission(submission.id)}
-                              className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600/20 border border-green-500/30 rounded text-green-300 hover:bg-green-600/30 transition-colors"
-                            >
-                              <ThumbsUp className="w-4 h-4 mr-2" />
-                              Accept & Distribute Bounty
-                            </button>
-                          </div>
-                        ) : submission.submissionStatus === 'accepted' ? (
-                          <div className="flex items-center text-green-300">
-                            <CheckCircle className="w-4 h-4 mr-2" />
-                            <span>Accepted - Bounty Distributed ({submission.issue.bounty} ETH)</span>
-                          </div>
-                        ) : (
-                          <div className="flex items-center text-red-300">
-                            <XCircle className="w-4 h-4 mr-2" />
-                            <span>Rejected - Solver can resubmit</span>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ))
+            {/* GitHub Navigation Tabs */}
+            <div className="github-nav-tabs">
+              <div className="flex">
+                <button
+                  onClick={() => setActiveTab('bounties')}
+                  className={`github-nav-tab ${activeTab === 'bounties' ? 'active' : ''}`}
+                >
+                  <Target className="w-4 h-4 mr-2" />
+                  {isRepoOwner ? 'My Bounties' : 'Bounties'}
+                  <span className="github-counter ml-2">{bounties.length}</span>
+                </button>
+                {isRepoOwner && (
+                  <button
+                    onClick={() => setActiveTab('submissions')}
+                    className={`github-nav-tab ${activeTab === 'submissions' ? 'active' : ''}`}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    Submissions
+                    <span className="github-counter ml-2">{submissions.length}</span>
+                  </button>
                 )}
               </div>
-            )}
+            </div>
+
+            {/* Tab Content */}
+            <div className="py-6">
+              {/* Stats Cards - GitHub Style */}
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-white">{bounties.length}</div>
+                      <div className="github-text-muted text-sm">Total {isRepoOwner ? 'Bounties' : 'Repositories'}</div>
+                    </div>
+                    <Target className="w-8 h-8 text-blue-500" />
+                  </div>
+                </div>
+                
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-green-400">
+                        {bounties.reduce((sum, bounty) => sum + parseFloat(bounty.totalBounty), 0).toFixed(2)} ETH
+                      </div>
+                      <div className="github-text-muted text-sm">Total Value</div>
+                    </div>
+                    <DollarSign className="w-8 h-8 text-green-500" />
+                  </div>
+                </div>
+                
+                <div className="github-stat-card">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {bounties.filter(b => b.status === 'active').length}
+                      </div>
+                      <div className="github-text-muted text-sm">Active {isRepoOwner ? 'Bounties' : 'Issues'}</div>
+                    </div>
+                    <Clock className="w-8 h-8 text-yellow-500" />
+                  </div>
+                </div>
+
+                {isRepoOwner && (
+                  <div className="github-stat-card">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-2xl font-bold text-purple-400">{submissions.length}</div>
+                        <div className="github-text-muted text-sm">Submissions</div>
+                      </div>
+                      <Users className="w-8 h-8 text-purple-500" />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Bounties Tab Content */}
+              {activeTab === 'bounties' && (
+                <div className="space-y-4">
+                  {bounties.length === 0 ? (
+                    <div className="github-card p-12 text-center">
+                      <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                      <h3 className="github-h3 mb-2">No bounties yet</h3>
+                      <p className="github-text-muted mb-4">
+                        {isRepoOwner 
+                          ? "You haven't created any bounties yet. Submit code for analysis to get started."
+                          : "You haven't participated in any bounties yet. Check out the marketplace to find issues to solve."
+                        }
+                      </p>
+                      <button 
+                        onClick={() => router.push(isRepoOwner ? '/submit' : '/marketplace')}
+                        className="btn-github-primary"
+                      >
+                        {isRepoOwner ? 'Submit Code' : 'Browse Issues'}
+                      </button>
+                    </div>
+                  ) : (
+                    bounties.map((bounty) => (
+                      <div key={bounty.id} className="github-card-hover p-6">
+                        {/* Bounty Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                          <div>
+                            <h3 className="github-text-title text-lg mb-2">
+                              <Github className="w-4 h-4 inline mr-2" />
+                              {bounty.repository}
+                            </h3>
+                            <div className="flex flex-wrap items-center gap-3 text-sm github-text-muted">
+                              <span>{bounty.issues.length} issues</span>
+                              <span>•</span>
+                              <span>{bounty.totalBounty} ETH total</span>
+                              <span>•</span>
+                              <span>Created {formatDate(bounty.createdAt)}</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-2 mt-4 md:mt-0">
+                            <span className={`github-state-${bounty.status === 'active' ? 'open' : 'closed'}`}>
+                              {bounty.status}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Issues List */}
+                        <div className="space-y-3">
+                          {bounty.issues.map((issue, index) => {
+                            const TypeIcon = getTypeIcon(issue.type);
+                            return (
+                              <div key={index} className="github-issue-item">
+                                <div className="flex items-start space-x-3">
+                                  <TypeIcon className={`w-4 h-4 mt-1 ${issue.type === 'bug' ? 'text-red-500' : 'text-purple-500'}`} />
+                                  <div className="flex-1">
+                                    <div className="flex items-center space-x-2 mb-1">
+                                      <span className="github-text-title">{issue.title}</span>
+                                      {issue.githubIssueNumber && (
+                                        <span className="github-issue-number">#{issue.githubIssueNumber}</span>
+                                      )}
+                                    </div>
+                                    <div className="flex items-center space-x-3 text-sm">
+                                      <span className={`github-label ${getSeverityColor(issue.severity)}`}>
+                                        {issue.severity}
+                                      </span>
+                                      <span className="github-text-muted">{issue.suggestedBounty} ETH</span>
+                                      {issue.githubIssueUrl && (
+                                        <a
+                                          href={issue.githubIssueUrl}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="github-text-link flex items-center"
+                                        >
+                                          <ExternalLink className="w-3 h-3 mr-1" />
+                                          View
+                                        </a>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {/* Submissions Tab Content */}
+              {isRepoOwner && activeTab === 'submissions' && (
+                <div className="space-y-6">
+                  {/* Debug Info and Refresh Button */}
+                  <div className="github-card p-4" style={{ backgroundColor: '#0d419d1a', borderColor: '#1f6feb' }}>
+                    <div className="flex items-center justify-between">
+                      <div className="text-sm text-blue-300">
+                        <strong>Debug:</strong> Found {submissions.length} submissions in shared pool
+                      </div>
+                      <button
+                        onClick={() => window.location.reload()}
+                        className="btn-github-secondary text-sm py-1 px-3"
+                      >
+                        Refresh Data
+                      </button>
+                    </div>
+                  </div>
+
+                  {submissions.length === 0 ? (
+                    <div className="github-card p-12 text-center">
+                      <Eye className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                      <h3 className="github-h3 mb-2">No Submissions Yet</h3>
+                      <p className="github-text-muted">
+                        Submissions from solvers will appear here for your review.
+                      </p>
+                      <div className="mt-4 text-sm github-text-muted">
+                        <p>Troubleshooting:</p>
+                        <ul className="list-disc list-inside mt-2">
+                          <li>Make sure solver has submitted PRs from the solver dashboard</li>
+                          <li>Try refreshing this page</li>
+                          <li>Check that submissions are for gyanshupathak repositories</li>
+                        </ul>
+                      </div>
+                    </div>
+                  ) : (
+                    submissions.map((submission) => (
+                      <div key={submission.id} className="github-card-hover p-6">
+                        {/* Submission Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between mb-6">
+                          <div className="mb-4 md:mb-0">
+                            <h3 className="github-text-title text-xl mb-2">{submission.issue.title}</h3>
+                            <div className="flex flex-wrap items-center gap-3 text-sm github-text-muted">
+                              <span className="flex items-center">
+                                <Github className="w-4 h-4 mr-1" />
+                                {submission.issue.repository}
+                              </span>
+                              <span>#{submission.issue.issueNumber}</span>
+                              <span>Stake: {submission.stakeAmount} ETH</span>
+                              <span>Bounty: {submission.issue.bounty} ETH</span>
+                            </div>
+                          </div>
+                          
+                          <div className="flex items-center space-x-3">
+                            <span className={`github-label ${getSeverityColor(submission.issue.severity)}`}>
+                              {submission.issue.severity}
+                            </span>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(submission.submissionStatus)}`}>
+                              {submission.submissionStatus.replace('_', ' ')}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Issue Description */}
+                        <p className="github-text-muted mb-4 line-clamp-2">{submission.issue.description}</p>
+
+                        {/* Solver Info */}
+                        <div className="github-card p-4 mb-4">
+                          <h4 className="font-semibold text-white mb-2">Solver Details</h4>
+                          <div className="flex items-center justify-between text-sm">
+                            <span className="github-text-muted">
+                              Assigned to: {submission.assignedTo?.substring(0, 6)}...{submission.assignedTo?.substring(submission.assignedTo.length - 4)}
+                            </span>
+                            <span className="github-text-muted">
+                              Submitted: {submission.submittedAt ? formatDate(submission.submittedAt) : 'N/A'}
+                            </span>
+                          </div>
+                          {submission.submissionUrl && (
+                            <div className="mt-2">
+                              <a
+                                href={submission.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="github-text-link text-sm flex items-center"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                View Pull Request
+                              </a>
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="border-t border-gray-700 pt-4">
+                          {submission.submissionStatus === 'submitted' ? (
+                            <div className="flex space-x-3">
+                              <button
+                                onClick={() => handleRejectSubmission(submission.id)}
+                                className="flex-1 flex items-center justify-center px-4 py-2 bg-red-600/20 border border-red-500/30 rounded text-red-300 hover:bg-red-600/30 transition-colors"
+                              >
+                                <ThumbsDown className="w-4 h-4 mr-2" />
+                                Reject
+                              </button>
+                              <button
+                                onClick={() => handleAcceptSubmission(submission.id)}
+                                className="flex-1 flex items-center justify-center px-4 py-2 bg-green-600/20 border border-green-500/30 rounded text-green-300 hover:bg-green-600/30 transition-colors"
+                              >
+                                <ThumbsUp className="w-4 h-4 mr-2" />
+                                Accept & Distribute Bounty
+                              </button>
+                            </div>
+                          ) : submission.submissionStatus === 'accepted' ? (
+                            <div className="flex items-center text-green-300">
+                              <CheckCircle className="w-4 h-4 mr-2" />
+                              <span>Accepted - Bounty Distributed ({submission.issue.bounty} ETH)</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center text-red-300">
+                              <XCircle className="w-4 h-4 mr-2" />
+                              <span>Rejected - Solver can resubmit</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </main>
       </div>

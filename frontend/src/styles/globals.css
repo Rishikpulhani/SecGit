@@ -4,88 +4,383 @@
 
 @layer base {
   * {
-    @apply border-gray-700;
+    @apply border-gray-300;
   }
+  
   body {
-    @apply bg-gray-900 text-gray-100;
+    @apply bg-white text-gray-900;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+    line-height: 1.6;
+    font-weight: 400;
+    letter-spacing: -0.01em;
+    /* Always use dark mode for this app */
+    @apply bg-gray-900 text-white !important;
+    background-color: #0d1117 !important;
+  }
+  
+  /* Ensure all main containers use dark background */
+  main, section, .github-layout, .min-h-screen {
+    background-color: #0d1117 !important;
   }
 }
 
 @layer components {
-  .github-text {
-    @apply text-white;
+  /* Enhanced Typography */
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
   }
   
+  /* Ensure proper text alignment */
+  .text-center {
+    text-align: center !important;
+  }
+  
+  /* Force center alignment for hero content */
+  section h1 {
+    text-align: center !important;
+    margin-left: auto !important;
+    margin-right: auto !important;
+    width: 100% !important;
+    display: block !important;
+  }
+  
+  /* Ensure all hero text is centered */
+  section .text-center * {
+    text-align: center !important;
+  }
+  
+  /* GitHub Header Styles */
+  .github-header {
+    @apply bg-gray-900 border-b border-gray-700;
+    background-color: #0d1117 !important;
+    border-color: #30363d;
+  }
+  
+  .github-header-nav {
+    @apply text-white hover:text-gray-300 transition-colors;
+    font-weight: 500;
+  }
+  
+  /* GitHub Navigation Tabs */
+  .github-nav-tabs {
+    @apply border-b border-gray-700;
+    border-color: #21262d;
+  }
+  
+  .github-nav-tab {
+    @apply px-4 py-3 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent hover:border-gray-500 transition-all;
+  }
+  
+  .github-nav-tab.active {
+    @apply text-white border-orange-500;
+    border-color: #fd7e14;
+  }
+  
+  /* GitHub Cards */
   .github-card {
-    @apply bg-gray-800/80 border border-gray-600/40 shadow-lg rounded-lg backdrop-blur-sm;
+    @apply border border-gray-700 rounded-md;
+    background-color: transparent;
+    border-color: #30363d;
   }
   
-  .github-card-elevated {
-    @apply bg-gray-800/90 border border-gray-600/60 shadow-xl rounded-lg backdrop-blur-sm hover:bg-gray-800 transition-all duration-200;
+  .github-card-hover {
+    @apply github-card hover:border-gray-600 transition-colors;
   }
   
+  .github-card-solid {
+    @apply github-card;
+    background-color: #161b22;
+  }
+  
+  /* GitHub Buttons */
+  .btn-github-primary {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white border rounded-md transition-colors;
+    background-color: #238636;
+    border-color: #238636;
+  }
+  
+  .btn-github-primary:hover {
+    background-color: #2ea043;
+    border-color: #2ea043;
+  }
+  
+  .btn-github-secondary {
+    @apply inline-flex items-center justify-center px-3 py-1.5 text-sm font-medium text-white border rounded-md transition-colors;
+    background-color: #21262d;
+    border-color: #30363d;
+  }
+  
+  .btn-github-secondary:hover {
+    background-color: #30363d;
+    border-color: #8b949e;
+  }
+  
+  /* GitHub Issue List */
+  .github-issue-item {
+    @apply border-b border-gray-700 py-3 hover:bg-gray-800 transition-colors;
+    border-color: #21262d;
+  }
+  
+  .github-issue-item:hover {
+    background-color: #161b22;
+  }
+  
+  /* GitHub Labels */
+  .github-label {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+  }
+  
+  .github-label-bug {
+    background-color: #da3633;
+    color: #ffffff;
+  }
+  
+  .github-label-enhancement {
+    background-color: #0969da;
+    color: #ffffff;
+  }
+  
+  .github-label-security {
+    background-color: #8250df;
+    color: #ffffff;
+  }
+  
+  .github-label-low {
+    background-color: #1f883d;
+    color: #ffffff;
+  }
+  
+  .github-label-medium {
+    background-color: #d29922;
+    color: #ffffff;
+  }
+  
+  .github-label-high {
+    background-color: #cf222e;
+    color: #ffffff;
+  }
+  
+  .github-label-critical {
+    background-color: #8b0000;
+    color: #ffffff;
+  }
+  
+  /* GitHub Counter Badges */
+  .github-counter {
+    @apply inline-flex items-center px-2 py-1 text-xs font-semibold text-white rounded-full;
+    background-color: #656d76;
+  }
+  
+  /* GitHub Search */
+  .github-search {
+    @apply w-full px-3 py-1.5 text-sm border rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    background-color: #0d1117;
+    border-color: #30363d;
+  }
+  
+  /* GitHub Input */
+  .github-input {
+    @apply w-full px-3 py-2 text-sm border rounded-md text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+    background-color: #0d1117;
+    border-color: #30363d;
+  }
+  
+  /* GitHub Select */
+  .github-select {
+    @apply github-input appearance-none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+  }
+  
+  /* GitHub Text Styles */
+  .github-text-muted {
+    @apply text-gray-400;
+    color: #8b949e;
+  }
+  
+  .github-text-title {
+    @apply text-white font-semibold;
+  }
+  
+  .github-text-link {
+    @apply text-blue-400 hover:text-blue-300 transition-colors;
+    color: #58a6ff;
+  }
+  
+  .github-text-link:hover {
+    color: #79c0ff;
+  }
+  
+  /* GitHub Icons */
+  .github-icon-open {
+    @apply text-green-500;
+    color: #3fb950;
+  }
+  
+  .github-icon-closed {
+    @apply text-purple-500;
+    color: #a475f9;
+  }
+  
+  /* GitHub State Indicators */
+  .github-state-open {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium text-white rounded-full;
+    background-color: #238636;
+  }
+  
+  .github-state-closed {
+    @apply inline-flex items-center px-2 py-1 text-xs font-medium text-white rounded-full;
+    background-color: #8250df;
+  }
+  
+  /* GitHub Repository Header */
+  .github-repo-header {
+    @apply border-b border-gray-700 pb-4;
+    border-color: #21262d;
+  }
+  
+  /* GitHub Sidebar */
+  .github-sidebar {
+    @apply border-r border-gray-700;
+    border-color: #21262d;
+  }
+  
+  /* GitHub Main Content */
+  .github-main {
+    background-color: #0d1117;
+  }
+  
+  /* GitHub Typography */
+  .github-h1 {
+    @apply text-2xl font-semibold text-white mb-4;
+  }
+  
+  .github-h2 {
+    @apply text-xl font-semibold text-white mb-3;
+  }
+  
+  .github-h3 {
+    @apply text-lg font-medium text-white mb-2;
+  }
+  
+  /* GitHub Container */
+  .github-container {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+  
+  /* GitHub Layout */
+  .github-layout {
+    @apply min-h-screen;
+    background-color: #0d1117 !important;
+  }
+  
+  /* Force all pages to use dark background */
+  div, main, section {
+    background-color: transparent;
+  }
+  
+  /* Specific overrides for any lighter backgrounds */
+  .bg-gray-800, .bg-gray-700, .bg-gray-600 {
+    background-color: #0d1117 !important;
+  }
+  
+  /* GitHub Issue Number */
+  .github-issue-number {
+    @apply text-gray-400 font-normal;
+    color: #8b949e;
+  }
+  
+  /* GitHub Meta Info */
+  .github-meta {
+    @apply text-xs text-gray-400;
+    color: #8b949e;
+  }
+  
+  /* GitHub Tab Navigation */
+  .github-tab-nav {
+    @apply flex border-b border-gray-700;
+    border-color: #21262d;
+  }
+  
+  .github-tab {
+    @apply px-4 py-2 text-sm font-medium text-gray-400 hover:text-white border-b-2 border-transparent hover:border-gray-500 transition-all;
+  }
+  
+  .github-tab.active {
+    @apply text-white border-orange-500;
+    border-color: #fd7e14;
+  }
+  
+  /* GitHub Dashboard Stats */
+  .github-stat-card {
+    @apply p-4 rounded-md border;
+    background-color: #161b22;
+    border-color: #30363d;
+  }
+  
+  /* Legacy button support */
   .btn-primary {
-    @apply inline-flex items-center justify-center rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white shadow-lg transition-all duration-200 hover:bg-blue-700 hover:shadow-xl hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 focus:ring-offset-gray-900 disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply btn-github-primary;
   }
   
   .btn-secondary {
-    @apply inline-flex items-center justify-center rounded-md border border-gray-500/50 bg-gray-700/50 px-4 py-2 text-sm font-medium text-white shadow-md transition-all duration-200 hover:bg-gray-600/70 hover:border-gray-400/60 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 focus:ring-offset-gray-900;
-  }
-
-  .github-nav-link {
-    @apply text-gray-200 hover:text-white font-medium transition-colors duration-150;
-  }
-
-  .github-header {
-    @apply bg-gray-900/95 border-b border-gray-700/50 shadow-lg backdrop-blur-sm;
+    @apply btn-github-secondary;
   }
   
-  .text-enhanced {
-    @apply text-white font-medium;
-  }
-  
-  .text-muted {
-    @apply text-gray-300;
-  }
-  
-  .text-subtle {
-    @apply text-gray-400;
+  /* Legacy card support */
+  .github-card-elevated {
+    @apply github-card-solid;
   }
 }
 
-/* Custom scrollbar - GitHub dark style */
+/* GitHub Custom Scrollbar */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #0d1117;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #484f58;
+  background-color: #6e7681;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #6e7681;
+  background-color: #8b949e;
 }
 
-/* Enhanced backgrounds */
-.enhanced-bg {
-  background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #21262d 100%);
+/* GitHub Focus States */
+*:focus {
+  outline: 2px solid #0969da;
+  outline-offset: 2px;
 }
 
-/* Glowing effects */
-.glow-blue {
-  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
-}
-
-.glow-green {
-  box-shadow: 0 0 20px rgba(34, 197, 94, 0.15);
-}
-
-.glow-purple {
-  box-shadow: 0 0 20px rgba(168, 85, 247, 0.15);
+/* GitHub Dark Mode Variables */
+:root {
+  --color-canvas-default: #0d1117;
+  --color-canvas-overlay: #161b22;
+  --color-canvas-inset: #010409;
+  --color-canvas-subtle: #161b22;
+  --color-border-default: #30363d;
+  --color-border-muted: #21262d;
+  --color-neutral-muted: #656d76;
+  --color-accent-emphasis: #1f6feb;
+  --color-accent-muted: #388bfd26;
+  --color-success-emphasis: #238636;
+  --color-attention-emphasis: #d29922;
+  --color-severe-emphasis: #da3633;
+  --color-danger-emphasis: #f85149;
+  --color-open-emphasis: #3fb950;
+  --color-closed-emphasis: #f85149;
+  --color-done-emphasis: #a475f9;
+  --color-sponsors-emphasis: #db61a2;
 }
