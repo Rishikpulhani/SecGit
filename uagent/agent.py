@@ -18,9 +18,9 @@ from uagents_core.contrib.protocols.chat import (
 
 # Import MeTTa components (following singularity-net-metta pattern)
 from hyperon import MeTTa
-from issue.knowledge import initialize_knowledge_graph
-from issue.repositoryrag import RepositoryRAG
-from issue.utils import process_repository_query
+from metta.knowledge import initialize_knowledge_graph
+from metta.repositoryrag import RepositoryRAG
+from metta.utils import process_repository_query
 
 # Load environment variables from .env file
 load_dotenv()
