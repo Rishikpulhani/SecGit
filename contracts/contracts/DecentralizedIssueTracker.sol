@@ -57,8 +57,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     mapping(uint256 => mapping(address => bool)) public hasAttemptedIssue;
     
     uint256 public nextIssueId = 1;
-    uint256 public constant MIN_ORG_STAKE = 0.01 ether;
-    uint256 public constant AI_COMPUTATION_COST = 0.001 ether;
+    uint256 public constant MIN_ORG_STAKE = 0.000001 ether;
+    uint256 public constant AI_COMPUTATION_COST = 0.0000001 ether;
     address public AI_AGENT_ADDRESS = 0x0000000000000000000000000000000000000000; 
 
     uint256 public constant MIN_CONTRIBUTOR_STAKE_PERCENTAGE = 5;
@@ -235,7 +235,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     function completeIssue(uint256 _issueId) external nonReentrant {
         Issue storage issue = issues[_issueId];
         require(issue.id != 0, "Issue does not exist");
-        require(issue.presentHackerConfidenceScore > 0, "Issue not graded by AI");
+        // require(issue.presentHackerConfidenceScore > 0, "Issue not graded by AI");
         require(msg.sender == organizations[issue.org].owner, "Only organization owner can complete issue");
         require(issue.isAssigned, "Issue not assigned");
         require(!issue.isCompleted, "Issue already completed");
