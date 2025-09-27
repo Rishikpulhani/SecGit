@@ -137,7 +137,7 @@ export default function Success() {
       
       // Step 2: Send wallet transaction (0.00 ETH for now)
       const weiHex = '0x0'; // 0 ETH in hex
-      const contractAddress = '0x742d35Cc6566C4d9EA3D3F4c10b5A2E1e9D4c5aF'; // Placeholder
+      const contractAddress = '0x56De76f5b27e1BeE19f813B1B2035D05331dBe45'; // Real deployed contract
       
       const txHash = await sendTransaction(contractAddress, weiHex);
       

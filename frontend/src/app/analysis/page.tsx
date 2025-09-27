@@ -35,6 +35,7 @@ export default function Analysis() {
   const repoUrl = searchParams.get('repo') || '';
   const transactionHash = searchParams.get('tx') || '';
   const userAddress = searchParams.get('address') || '';
+  const dataParam = searchParams.get('data');
   
   const [isAnalyzing, setIsAnalyzing] = useState(true);
   const [progress, setProgress] = useState(0);
@@ -49,8 +50,22 @@ export default function Analysis() {
       return;
     }
 
+    // If we have data from Hero component, use it directly
+    if (dataParam) {
+      try {
+        const parsedData = JSON.parse(decodeURIComponent(dataParam));
+        setAnalysisResult(parsedData);
+        setIsAnalyzing(false);
+        setCurrentStage('Complete!');
+        setProgress(100);
+        return;
+      } catch (e) {
+        console.warn('Failed to parse data parameter, falling back to API call');
+      }
+    }
+
     startAnalysis();
-  }, [repoUrl, transactionHash, userAddress]);
+  }, [repoUrl, transactionHash, userAddress, dataParam]);
 
   const startAnalysis = async () => {
     try {
@@ -256,100 +271,133 @@ export default function Analysis() {
       <Header />
       
       <main className="pt-16">
-        <section className="relative min-h-screen flex items-center justify-center px-4 py-20" style={{ paddingTop: '6rem' }}>
-          <div className="w-full flex justify-center">
-            <div className="relative max-w-4xl w-full text-center">
+        <div className="github-container">
+          <div className="py-6">
+            
+            {/* Simple Header */}
+            <div className="mb-8">
+              <div className="flex items-center space-x-3 mb-4">
+                <div className="w-6 h-6 rounded-full bg-green-500 flex items-center justify-center">
+                  <CheckCircle className="w-4 h-4 text-white" />
+                </div>
+                <h1 className="text-2xl font-semibold text-white">
+                  AI Analysis Complete
+                </h1>
+              </div>
               
-              {/* Success Icon */}
-              <div className="mb-8">
-                <div className="w-24 h-24 bg-green-600/20 rounded-full flex items-center justify-center mx-auto">
-                  <CheckCircle className="w-12 h-12 text-green-400" />
-                </div>
-              </div>
-
-              {/* Title */}
-              <h1 className="text-3xl md:text-4xl font-bold mb-4 text-white text-center w-full">
-                AI Analysis Complete!
-              </h1>
-
-              {/* Subtitle */}
-              <p className="text-lg text-gray-300 mb-12">
+              <div className="github-text-muted text-sm mb-6">
                 {analysisResult?.agentsUsed} AI agents analyzed your repository and found actionable improvements.
-              </p>
-
-              {/* AI Agent Stats */}
-              <div className="grid grid-cols-3 gap-6 mb-8">
-                <div className="github-card p-4 text-center">
-                  <div className="text-2xl font-bold text-blue-400">{analysisResult?.agentsDiscovered}</div>
-                  <div className="text-sm text-gray-400">AI Agents Available</div>
-                </div>
-                <div className="github-card p-4 text-center">
-                  <div className="text-2xl font-bold text-green-400">{analysisResult?.agentsUsed}</div>
-                  <div className="text-sm text-gray-400">Agents Used</div>
-                </div>
-                <div className="github-card p-4 text-center">
-                  <div className="text-2xl font-bold text-purple-400">1</div>
-                  <div className="text-sm text-gray-400">Issues Found</div>
-                </div>
               </div>
+              
+              <div className="text-xs github-text-muted">
+                Repository: <code className="github-code">{analysisResult?.repositoryInfo?.url}</code>
+              </div>
+            </div>
 
-              {/* Issue Preview */}
-              {analysisResult?.issue && (
-                <div className="github-card p-6 text-left mb-8 max-w-2xl mx-auto">
-                  <div className="flex items-start justify-between mb-4">
-                    <div>
-                      <h3 className="text-white font-semibold text-lg mb-2">
-                        {analysisResult.issue.title}
-                      </h3>
-                      <div className="flex items-center space-x-4 text-sm text-gray-400">
-                        <span className="flex items-center">
-                          <AlertCircle className="w-4 h-4 mr-1" />
-                          {analysisResult.issue.difficulty}
-                        </span>
-                        <span className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" />
-                          {analysisResult.issue.estimatedTime}
-                        </span>
-                        <span className="flex items-center">
-                          <Users className="w-4 h-4 mr-1" />
-                          {analysisResult.issue.priority} Priority
-                        </span>
-                      </div>
-                    </div>
+            {/* Simple Stats */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              <div className="github-card p-4 text-center">
+                <div className="text-2xl font-semibold text-white mb-1">{analysisResult?.agentsDiscovered}</div>
+                <div className="text-sm github-text-muted">AI Agents Available</div>
+              </div>
+              
+              <div className="github-card p-4 text-center">
+                <div className="text-2xl font-semibold text-white mb-1">{analysisResult?.agentsUsed}</div>
+                <div className="text-sm github-text-muted">Agents Used</div>
+              </div>
+              
+              <div className="github-card p-4 text-center">
+                <div className="text-2xl font-semibold text-white mb-1">1</div>
+                <div className="text-sm github-text-muted">Issues Found</div>
+              </div>
+            </div>
+
+            {/* Simple Issue Preview */}
+            {analysisResult?.issue && (
+              <div className="github-card p-6 mb-8">
+                
+                {/* Issue Header */}
+                <div className="mb-4">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-sm github-text-muted">Enhancement</span>
                   </div>
+                  <h2 className="text-xl font-semibold text-white mb-3">
+                    {analysisResult.issue.title}
+                  </h2>
                   
-                  <p className="text-gray-300 text-sm mb-4 line-clamp-3">
+                  {/* Meta Information */}
+                  <div className="flex items-center space-x-4 text-sm github-text-muted">
+                    <span className="flex items-center space-x-1">
+                      <AlertCircle className="w-4 h-4" />
+                      <span>{analysisResult.issue.difficulty}</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{analysisResult.issue.estimatedTime}</span>
+                    </span>
+                    <span className="flex items-center space-x-1">
+                      <Users className="w-4 h-4" />
+                      <span>{analysisResult.issue.priority} Priority</span>
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Issue Description */}
+                <div className="mb-4">
+                  <p className="text-gray-300 leading-relaxed">
                     {analysisResult.issue.description}
                   </p>
-                  
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    {analysisResult.issue.labels.map((label, index) => (
-                      <span key={index} className="github-label" style={{ backgroundColor: '#6366f1', color: 'white' }}>
+                </div>
+                
+                {/* Labels */}
+                <div className="flex flex-wrap gap-2 mb-4">
+                  {analysisResult.issue.labels.map((label, index) => {
+                    // Smart label classification
+                    const labelClass = 
+                      label === 'enhancement' || label === 'feature' ? 'github-label-enhancement' :
+                      label === 'ai-generated' ? 'github-label-ai-generated' :
+                      label === 'api' ? 'github-label-feature' :
+                      label === 'bug' ? 'github-label-bug' :
+                      label === 'security' ? 'github-label-security' :
+                      'github-label-default';
+                    
+                    return (
+                      <span 
+                        key={index} 
+                        className={`github-label ${labelClass}`}
+                      >
                         {label}
                       </span>
-                    ))}
-                  </div>
-                  
-                  <div className="text-xs text-gray-500">
-                    Selected AI Agents: {analysisResult.selectedAgents.join(', ')}
+                    );
+                  })}
+                </div>
+                
+                {/* AI Agents Used */}
+                <div className="border-t border-gray-800 pt-4">
+                  <div className="text-xs github-text-muted mb-1">AI Agents Consulted</div>
+                  <div className="text-sm github-text-muted">
+                    {analysisResult.selectedAgents.join(', ')}
                   </div>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Continue Button */}
+            {/* Simple Continue Button */}
+            <div className="text-center">
               <button
                 onClick={handleContinue}
-                className="btn-github-primary px-8 py-4 text-lg font-medium"
+                className="btn-github-primary px-6 py-3"
               >
                 <span className="flex items-center">
                   Review Detailed Results
-                  <ArrowRight className="w-5 h-5 ml-2" />
+                  <ArrowRight className="w-4 h-4 ml-2" />
                 </span>
               </button>
-
             </div>
+
           </div>
-        </section>
+        </div>
       </main>
     </div>
   );

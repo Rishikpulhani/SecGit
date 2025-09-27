@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Filter, DollarSign, Clock, Users, Github, ExternalLink, Target, Zap, Shield, Bug, AlertCircle, Plus, CheckCircle, X } from 'lucide-react';
 import Header from '../../components/Header';
+import { getTypeColor, getSeverityColor } from '../../utils/labelUtils';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useWallet } from '../../contexts/WalletContext';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,99 +16,26 @@ declare global {
   }
 }
 
-// Featured issues from gyanshupathak repositories
-const featuredIssues = [
-  {
-    id: 1,
-    title: 'Implement secure authentication system',
-    description: 'Add JWT-based authentication with proper password hashing and session management for the health panel application.',
-    repository: 'gyanshupathak/health_panel',
-    repoUrl: 'https://github.com/gyanshupathak/health_panel',
-    type: 'security',
-    severity: 'high',
-    bounty: 0.8,
-    estimatedHours: 12,
-    applicants: 3,
-    tags: ['authentication', 'security', 'backend'],
-    createdAt: '2024-01-15',
-    issueNumber: 15,
-    author: 'gyanshupathak',
-    comments: 5,
-    status: 'open'
-  },
-  {
-    id: 2,
-    title: 'Fix memory leak in data processing module',
-    description: 'Memory usage continuously increases during large dataset processing, causing application crashes after extended use.',
-    repository: 'gyanshupathak/health_panel',
-    repoUrl: 'https://github.com/gyanshupathak/health_panel',
-    type: 'bug',
-    severity: 'high',
-    bounty: 0.6,
-    estimatedHours: 8,
-    applicants: 2,
-    tags: ['performance', 'memory', 'optimization'],
-    createdAt: '2024-01-12',
-    issueNumber: 23,
-    author: 'gyanshupathak',
-    comments: 3,
-    status: 'open'
-  },
-  {
-    id: 3,
-    title: 'Add input validation for user registration',
-    description: 'User registration form lacks proper input validation, allowing malformed data to be submitted.',
-    repository: 'gyanshupathak/SolVest',
-    repoUrl: 'https://github.com/gyanshupathak/SolVest',
-    type: 'security',
-    severity: 'medium',
-    bounty: 0.4,
-    estimatedHours: 6,
-    applicants: 5,
-    tags: ['validation', 'frontend', 'security'],
-    createdAt: '2024-01-10',
-    issueNumber: 8,
-    author: 'gyanshupathak',
-    comments: 2,
-    status: 'open'
-  },
-  {
-    id: 4,
-    title: 'Optimize database queries for user analytics',
-    description: 'Current analytics queries are slow and cause performance issues. Need to implement proper indexing and query optimization.',
-    repository: 'gyanshupathak/SolVest',
-    repoUrl: 'https://github.com/gyanshupathak/SolVest',
-    type: 'performance',
-    severity: 'medium',
-    bounty: 0.5,
-    estimatedHours: 10,
-    applicants: 1,
-    tags: ['database', 'performance', 'analytics'],
-    createdAt: '2024-01-08',
-    issueNumber: 12,
-    author: 'gyanshupathak',
-    comments: 7,
-    status: 'open'
-  },
-  {
-    id: 5,
-    title: 'Implement rate limiting for API endpoints',
-    description: 'API endpoints are vulnerable to abuse without proper rate limiting. Need to implement rate limiting middleware.',
-    repository: 'gyanshupathak/health_panel',
-    repoUrl: 'https://github.com/gyanshupathak/health_panel',
-    type: 'security',
-    severity: 'critical',
-    bounty: 1.0,
-    estimatedHours: 15,
-    applicants: 4,
-    tags: ['api', 'security', 'middleware'],
-    createdAt: '2024-01-05',
-    issueNumber: 31,
-    author: 'gyanshupathak',
-    comments: 9,
-    status: 'open'
-  }
-];
+// GitHub Issues interface
+type GitHubIssue = {
+  id: number;
+  title: string;
+  description: string;
+  repository: string;
+  repoUrl: string;
+  type: string;
+  severity: string;
+  bounty: number;
+  estimatedHours: number;
+  applicants: number;
+  tags: string[];
+  createdAt: string;
+  issueNumber: number;
+  author: string;
+  comments: number;
+  status: 'open' | 'closed';
+  html_url: string;
+};
 
 export default function Marketplace() {
   const router = useRouter();
@@ -120,6 +48,9 @@ export default function Marketplace() {
   const [showStakingModal, setShowStakingModal] = useState(false);
   const [stakeAmount, setStakeAmount] = useState('0.5');
   const [isStaking, setIsStaking] = useState(false);
+  const [issues, setIssues] = useState<GitHubIssue[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Switch to Base network
   const switchToBaseNetwork = async () => {
@@ -162,7 +93,7 @@ export default function Marketplace() {
     }
   };
 
-  const filteredIssues = featuredIssues.filter(issue => {
+  const filteredIssues = issues.filter(issue => {
     const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          issue.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -188,7 +119,7 @@ export default function Marketplace() {
       const weiHex = '0x0'; // 0 ETH in hex
       
       // Base network contract address (placeholder - replace with actual contract)
-      const contractAddress = '0x742d35Cc6566C4d9EA3D3F4c10b5A2E1e9D4c5aF';
+      const contractAddress = '0x56De76f5b27e1BeE19f813B1B2035D05331dBe45';
       
       const txHash = await sendTransaction(contractAddress, weiHex);
       
@@ -237,15 +168,35 @@ export default function Marketplace() {
     }
   };
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case 'critical': return 'github-label-critical';
-      case 'high': return 'github-label-high';
-      case 'medium': return 'github-label-medium';
-      case 'low': return 'github-label-low';
-      default: return 'github-label-medium';
-    }
-  };
+  // Fetch GitHub issues
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        const response = await fetch('/api/github/fetch-issues');
+        if (!response.ok) {
+          throw new Error('Failed to fetch issues');
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setIssues(data.issues);
+        } else {
+          throw new Error(data.error || 'Failed to fetch issues');
+        }
+      } catch (err: any) {
+        console.error('Error fetching issues:', err);
+        setError(err.message);
+        setIssues([]); // Fallback to empty array
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchIssues();
+  }, []);
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -253,15 +204,6 @@ export default function Marketplace() {
       case 'bug': return Bug;
       case 'performance': return Zap;
       default: return AlertCircle;
-    }
-  };
-
-  const getTypeColor = (type: string) => {
-    switch (type) {
-      case 'security': return 'github-label-security';
-      case 'bug': return 'github-label-bug';
-      case 'performance': return 'github-label-enhancement';
-      default: return 'github-label-enhancement';
     }
   };
 
@@ -358,19 +300,42 @@ export default function Marketplace() {
                 <div className="flex items-center space-x-4">
                   <span className="flex items-center">
                     <CheckCircle className="w-4 h-4 mr-1 github-icon-open" />
-                    {filteredIssues.length} Open
+                    {issues.filter(issue => issue.status === 'open').length} Open
                   </span>
                   <span className="flex items-center">
                     <X className="w-4 h-4 mr-1 github-icon-closed" />
-                    0 Closed
+                    {issues.filter(issue => issue.status === 'closed').length} Closed
                   </span>
+                </div>
+                <div className="text-sm github-text-muted">
+                  Showing {filteredIssues.length} of {issues.length} issues
                 </div>
               </div>
             </div>
 
             {/* GitHub Issues List */}
             <div className="github-card">
-              {filteredIssues.length === 0 ? (
+              {loading ? (
+                <div className="p-12 text-center">
+                  <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                  <h3 className="github-h3 mb-2">Loading issues...</h3>
+                  <p className="github-text-muted">
+                    Fetching issues from GitHub repositories.
+                  </p>
+                </div>
+              ) : error ? (
+                <div className="p-12 text-center">
+                  <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                  <h3 className="github-h3 mb-2">Failed to load issues</h3>
+                  <p className="github-text-muted mb-4">{error}</p>
+                  <button 
+                    onClick={() => window.location.reload()} 
+                    className="btn-github-primary text-sm"
+                  >
+                    Retry
+                  </button>
+                </div>
+              ) : filteredIssues.length === 0 ? (
                 <div className="p-12 text-center">
                   <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
                   <h3 className="github-h3 mb-2">No issues found</h3>
@@ -395,8 +360,15 @@ export default function Marketplace() {
                               <div className="flex-1">
                                 {/* Issue Title */}
                                 <h3 className="github-text-title text-base font-medium hover:text-blue-400 cursor-pointer mb-1">
-                                  {issue.title}
-                                  <span className="github-issue-number ml-1">#{issue.issueNumber}</span>
+                                  <a 
+                                    href={issue.html_url} 
+                                    target="_blank" 
+                                    rel="noopener noreferrer"
+                                    className="hover:text-blue-400 transition-colors"
+                                  >
+                                    {issue.title}
+                                    <span className="github-issue-number ml-1">#{issue.issueNumber}</span>
+                                  </a>
                                 </h3>
                                 
                                 {/* Issue Meta */}
@@ -426,7 +398,7 @@ export default function Marketplace() {
                                     {issue.severity}
                                   </span>
                                   {issue.tags.slice(0, 2).map((tag, index) => (
-                                    <span key={index} className="github-label" style={{ backgroundColor: '#6366f1', color: 'white' }}>
+                                    <span key={index} className="github-label github-label-default">
                                       {tag}
                                     </span>
                                   ))}

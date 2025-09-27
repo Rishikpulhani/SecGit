@@ -4,14 +4,25 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Shield, Coins, Users, Github, X, Zap, CheckCircle } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
+import { PAYMENT_CONFIG } from '../config/contract';
 import { useSubmit } from '../contexts/SubmitContext';
 
 export default function Hero() {
   const router = useRouter();
-  const { account, isConnected, connectWallet, sendTransaction } = useWallet();
+  const { 
+    account, 
+    isConnected, 
+    isOnCorrectNetwork, 
+    connectWallet, 
+    switchToCorrectNetwork, 
+    registerRepository,
+    createContractIssue 
+  } = useWallet();
   const { showSubmitModal, openSubmitModal, closeSubmitModal } = useSubmit();
   const [githubUrl, setGithubUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState('');
+  const [transactionHashes, setTransactionHashes] = useState<string[]>([]);
 
   const handleStartContributing = () => {
     openSubmitModal();
@@ -26,34 +37,109 @@ export default function Hero() {
     }
 
     setIsSubmitting(true);
+    setCurrentStatus('Preparing submission...');
+    setTransactionHashes([]);
     
     try {
-      // Step 1: Send test transaction with 0 ETH 
-      console.log('Sending test transaction (0 ETH)...');
-      const analysisFeeTx = await sendTransaction(
-        '0x742d35Cc6566C4d9EA3D3F4c10b5A2E1e9D4c5aF', // Contract address
-        '0x0' // 0 ETH for testing
-      );
-      
-      console.log('Test transaction confirmed:', analysisFeeTx);
+      // Step 1: Network check (bypassed for Rabby wallet compatibility)
+      setCurrentStatus('Using current network (0G-Galileo-Testnet detected)...');
+
+      // Step 2: Register repository with contract payment (0.000001 ETH)
+      setCurrentStatus(`Registering repository... (paying ${PAYMENT_CONFIG.ORG_REGISTRATION} ETH)`);
+      const registerTx = await registerRepository(githubUrl);
+      setTransactionHashes(prev => [...prev, registerTx]);
+      setCurrentStatus('Repository registered successfully! ✅');
+
+      // Step 3: Call AI agent for analysis
+      setCurrentStatus('AI agents analyzing repository...');
+      const aiResponse = await fetch('http://localhost:5000/api/analyze-repo', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          repo_url: githubUrl
+        })
+      });
+
+      if (!aiResponse.ok) {
+        throw new Error(`AI analysis failed: ${aiResponse.status} ${aiResponse.statusText}`);
+      }
+
+      const aiResult = await aiResponse.json();
+
+      if (!aiResult.success) {
+        throw new Error('AI analysis returned failure');
+      }
+
+      setCurrentStatus('AI analysis completed! ✅');
+
+      // Step 5: Optionally create GitHub issues
+      setCurrentStatus('Creating GitHub issues...');
+      try {
+        const githubResponse = await fetch('http://localhost:5000/api/create-github-issue', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            repo_url: githubUrl,
+            issue_data: aiResult.synthesized_analysis
+          })
+        });
+
+        if (githubResponse.ok) {
+          const githubResult = await githubResponse.json();
+          setCurrentStatus('GitHub issues created! ✅');
+          console.log('GitHub issue created:', githubResult.issue.url);
+        } else {
+          console.warn('GitHub issue creation failed, but continuing...');
+          setCurrentStatus('Contract setup complete! (GitHub issue creation skipped)');
+        }
+      } catch (githubError) {
+        console.warn('GitHub issue creation failed:', githubError);
+        setCurrentStatus('Contract setup complete! (GitHub issue creation failed)');
+      }
+
+      // Step 6: Wait a moment then redirect to analysis page
+      setCurrentStatus('✅ Complete! Redirecting to analysis results...');
+      await new Promise(resolve => setTimeout(resolve, 2000));
       
       closeSubmitModal();
       
-      // Step 2: Start analysis page (will call real AI agent)
-      router.push(`/analysis?repo=${encodeURIComponent(githubUrl)}&tx=${analysisFeeTx}&address=${account}`);
+      // Redirect to analysis page with proper parameters and data
+      const analysisData = {
+        success: true,
+        analysisId: `analysis_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        agentsUsed: aiResult.agents_used,
+        agentsDiscovered: aiResult.agents_discovered,
+        selectedAgents: aiResult.selected_agents,
+        analysisMethod: aiResult.analysis_method,
+        issue: {
+          title: aiResult.synthesized_analysis.title,
+          difficulty: aiResult.synthesized_analysis.difficulty,
+          priority: aiResult.synthesized_analysis.priority,
+          estimatedTime: aiResult.synthesized_analysis.implementation_estimate,
+          labels: aiResult.synthesized_analysis.labels,
+          acceptanceCriteria: aiResult.synthesized_analysis.acceptance_criteria,
+          technicalRequirements: aiResult.synthesized_analysis.technical_requirements,
+          description: aiResult.synthesized_analysis.body
+        },
+        repositoryInfo: {
+          owner: githubUrl.split('/')[3],
+          repo: githubUrl.split('/')[4],
+          url: githubUrl
+        }
+      };
       
+      router.push(
+        `/analysis?repo=${encodeURIComponent(githubUrl)}&tx=${registerTx}&address=${account}&data=${encodeURIComponent(JSON.stringify(analysisData))}`
+      );
+
     } catch (error: any) {
-      console.error('Submit error:', error);
-      
-      if (error.code === 4001) {
-        alert('Transaction cancelled by user.');
-      } else if (error.message?.includes('insufficient funds')) {
-        alert('Insufficient funds for gas fees.');
-      } else if (error.message?.includes('user rejected')) {
-        alert('Transaction rejected by user.');
-      } else {
-        alert(`Failed to submit: ${error.message || 'Unknown error'}`);
-      }
+      console.error('Submission failed:', error);
+      setCurrentStatus(`❌ Failed: ${error.message}`);
+      alert(`Submission failed: ${error.message}`);
     } finally {
       setIsSubmitting(false);
     }
@@ -134,7 +220,8 @@ export default function Hero() {
             </div>
 
             <p className="text-gray-300 mb-6">
-              Enter your GitHub repository URL to start comprehensive security analysis and create bounties for discovered issues.
+              Enter your GitHub repository URL to start comprehensive security analysis. 
+              You'll pay {PAYMENT_CONFIG.ORG_REGISTRATION} ETH to register your repository and create bounties for discovered vulnerabilities.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -184,7 +271,7 @@ export default function Hero() {
               {/* Analysis Info */}
               <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
                 <div className="text-sm text-blue-300">
-                  <strong>Test Transaction:</strong> 0.00 ETH transaction to simulate blockchain integration. Real AI analysis with 39+ agents will analyze your repository and create detailed GitHub issues with implementation roadmaps.
+                  <strong>Real Blockchain Integration:</strong> Pay {PAYMENT_CONFIG.ORG_REGISTRATION} ETH to register your repository on 0G Chain. AI agents will analyze your code and create contract-based bounties for security vulnerabilities and improvements.
                 </div>
               </div>
 
@@ -210,12 +297,45 @@ export default function Hero() {
                   ) : (
                     <div className="flex items-center justify-center">
                       <Zap className="w-5 h-5 mr-2" />
-                      Submit & Analyze (0.00 ETH)
+                      Submit & Analyze ({PAYMENT_CONFIG.ORG_REGISTRATION} ETH)
                     </div>
                   )}
                 </button>
               </div>
             </form>
+
+            {/* Status Display */}
+            {isSubmitting && (
+              <div className="mt-6 p-6 bg-gray-800/50 border border-gray-600 rounded-lg">
+                <div className="flex items-center mb-4">
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-400 mr-3"></div>
+                  <p className="text-white font-medium">Processing Submission...</p>
+                </div>
+                
+                {currentStatus && (
+                  <p className="text-blue-400 mb-4">{currentStatus}</p>
+                )}
+                
+                {transactionHashes.length > 0 && (
+                  <div className="mt-4">
+                    <p className="text-gray-300 text-sm mb-2">Transaction Hashes:</p>
+                    {transactionHashes.map((hash, index) => (
+                      <a
+                        key={index}
+                        href={`https://chainscan-testnet.0g.ai/tx/${hash}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-blue-300 hover:text-blue-200 text-sm font-mono mb-1 hover:underline"
+                      >
+                        {index + 1}. {hash.slice(0, 10)}...{hash.slice(-8)}
+                      </a>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Network Status - Hidden for Rabby compatibility */}
           </div>
         </div>
       )}

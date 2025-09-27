@@ -2,10 +2,12 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Target, Clock, DollarSign, Github, ExternalLink, Send, CheckCircle, XCircle, AlertCircle, Plus, Star, GitFork, Code, Shield, Bug, Zap, X } from 'lucide-react';
+import { Target, Clock, DollarSign, Github, ExternalLink, Send, CheckCircle, XCircle, AlertCircle, Plus, Star, GitFork, Code, Shield, Bug, Zap, X, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { getTypeColor, getSeverityColor } from '../../utils/labelUtils';
+import { useWallet } from '../../contexts/WalletContext';
 
 interface Assignment {
   id: number;
@@ -30,9 +32,31 @@ interface Assignment {
   submittedAt?: string;
 }
 
+// GitHub Issues interface
+type GitHubIssue = {
+  id: number;
+  title: string;
+  description: string;
+  repository: string;
+  repoUrl: string;
+  type: string;
+  severity: string;
+  bounty: number;
+  estimatedHours: number;
+  applicants: number;
+  tags: string[];
+  createdAt: string;
+  issueNumber: number;
+  author: string;
+  comments: number;
+  status: 'open' | 'closed';
+  html_url: string;
+};
+
 export default function SolverDashboard() {
   const router = useRouter();
   const { user } = useAuth();
+  const { account, isConnected, sendTransaction } = useWallet();
   
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,6 +64,20 @@ export default function SolverDashboard() {
   const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
   const [prUrl, setPrUrl] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // GitHub issues state
+  const [issues, setIssues] = useState<GitHubIssue[]>([]);
+  const [issuesLoading, setIssuesLoading] = useState(true);
+  const [issuesError, setIssuesError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedType, setSelectedType] = useState('all');
+  const [selectedSeverity, setSelectedSeverity] = useState('all');
+  
+  // Staking modal state
+  const [selectedIssue, setSelectedIssue] = useState<GitHubIssue | null>(null);
+  const [showStakingModal, setShowStakingModal] = useState(false);
+  const [stakeAmount, setStakeAmount] = useState('0.5');
+  const [isStaking, setIsStaking] = useState(false);
 
   useEffect(() => {
     // Load assignments from localStorage
@@ -56,6 +94,36 @@ export default function SolverDashboard() {
     };
 
     loadAssignments();
+  }, []);
+
+  // Fetch GitHub issues
+  useEffect(() => {
+    const fetchIssues = async () => {
+      try {
+        setIssuesLoading(true);
+        setIssuesError(null);
+        
+        const response = await fetch('/api/github/fetch-issues');
+        if (!response.ok) {
+          throw new Error('Failed to fetch issues');
+        }
+        
+        const data = await response.json();
+        if (data.success) {
+          setIssues(data.issues);
+        } else {
+          throw new Error(data.error || 'Failed to fetch issues');
+        }
+      } catch (err: any) {
+        console.error('Error fetching issues:', err);
+        setIssuesError(err.message);
+        setIssues([]);
+      } finally {
+        setIssuesLoading(false);
+      }
+    };
+
+    fetchIssues();
   }, []);
 
   const handleSubmitSolution = async () => {
@@ -157,6 +225,130 @@ export default function SolverDashboard() {
     });
   };
 
+  // Switch to Base network
+  const switchToBaseNetwork = async () => {
+    if (!window.ethereum) {
+      throw new Error('MetaMask is not installed. Please install MetaMask to use this feature.');
+    }
+
+    try {
+      // Try to switch to Base network
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: '0x2105' }], // Base mainnet chain ID
+      });
+    } catch (switchError: any) {
+      // If the network is not added to MetaMask, add it
+      if (switchError.code === 4902) {
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [
+              {
+                chainId: '0x2105',
+                chainName: 'Base',
+                nativeCurrency: {
+                  name: 'Ethereum',
+                  symbol: 'ETH',
+                  decimals: 18,
+                },
+                rpcUrls: ['https://mainnet.base.org'],
+                blockExplorerUrls: ['https://basescan.org/'],
+              },
+            ],
+          });
+        } catch (addError) {
+          throw new Error('Failed to add Base network to MetaMask.');
+        }
+      } else {
+        throw new Error('Failed to switch to Base network. Please switch manually in MetaMask.');
+      }
+    }
+  };
+
+  // Handle staking and assignment
+  const handleStakeAndAssign = async () => {
+    if (!selectedIssue || !account) {
+      alert('Please connect your wallet first.');
+      return;
+    }
+
+    setIsStaking(true);
+
+    try {
+      // Switch to Base network
+      await switchToBaseNetwork();
+
+      // Simulate staking transaction (0 ETH transaction for demo)
+      const txHash = await sendTransaction({
+        to: account, // Send to self for demo
+        value: '0', // 0 ETH
+        gasLimit: '21000',
+      });
+
+      // Create assignment data
+      const assignmentData: Assignment = {
+        id: Date.now(),
+        issueId: selectedIssue.id,
+        issue: {
+          title: selectedIssue.title,
+          description: selectedIssue.description,
+          repository: selectedIssue.repository,
+          repoUrl: selectedIssue.repoUrl,
+          type: selectedIssue.type,
+          severity: selectedIssue.severity,
+          bounty: selectedIssue.bounty,
+          issueNumber: selectedIssue.issueNumber,
+        },
+        stakeAmount: '0.5', // Fixed stake amount for display
+        transactionHash: txHash,
+        assignedTo: account,
+        assignedAt: new Date().toISOString(),
+        status: 'assigned',
+        submissionStatus: 'not_submitted'
+      };
+      
+      // Store in localStorage (in production, this would be in a database)
+      const existingAssignments = JSON.parse(localStorage.getItem('userAssignments') || '[]');
+      existingAssignments.push(assignmentData);
+      localStorage.setItem('userAssignments', JSON.stringify(existingAssignments));
+      
+      // Also store in shared pool for cross-browser access
+      const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
+      allSubmissions.push(assignmentData);
+      localStorage.setItem('allSubmissions', JSON.stringify(allSubmissions));
+      
+      setShowStakingModal(false);
+      setAssignments(existingAssignments); // Update local state
+      
+    } catch (error: any) {
+      console.error('Error staking and assigning:', error);
+      
+      if (error.message.includes('Base network')) {
+        alert(`Network Error: ${error.message}. Please ensure MetaMask is installed and try again.`);
+      } else if (error.code === 4001) {
+        alert('Transaction cancelled by user.');
+      } else if (error.code === -32603) {
+        alert('Transaction failed. Please check your balance and try again.');
+      } else {
+        alert('Failed to stake and assign issue. Please try again.');
+      }
+    } finally {
+      setIsStaking(false);
+    }
+  };
+
+  // Filter issues
+  const filteredIssues = issues.filter(issue => {
+    const matchesSearch = issue.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         issue.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         issue.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()));
+    const matchesType = selectedType === 'all' || issue.type === selectedType;
+    const matchesSeverity = selectedSeverity === 'all' || issue.severity === selectedSeverity;
+    
+    return matchesSearch && matchesType && matchesSeverity;
+  });
+
   // Stats calculations
   const totalAssigned = assignments.length;
   const activeIssues = assignments.filter(a => a.submissionStatus === 'not_submitted' || a.submissionStatus === 'submitted').length;
@@ -210,13 +402,6 @@ export default function SolverDashboard() {
                   <button className="btn-github-secondary text-sm">
                     <Star className="w-4 h-4 mr-1" />
                     Star
-                  </button>
-                  <button 
-                    onClick={() => router.push('/marketplace')}
-                    className="btn-github-primary text-sm"
-                  >
-                    <Plus className="w-4 h-4 mr-1" />
-                    Find Issues
                   </button>
                 </div>
               </div>

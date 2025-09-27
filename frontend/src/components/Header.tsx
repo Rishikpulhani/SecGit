@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Menu, X, Wallet, LogOut, Github, Search, Plus, Bell } from 'lucide-react';
+import { Menu, X, Wallet, LogOut, Github, Search, Plus, Bell, Wrench } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
 import { useAuth } from '../contexts/AuthContext';
 import { useSubmit } from '../contexts/SubmitContext';
@@ -50,6 +50,17 @@ export default function Header() {
               Dashboard
             </button>
           </nav>
+
+          {/* Right: Solve Button */}
+          <div className="hidden md:flex items-center">
+            <button 
+              onClick={() => router.push('/solver-dashboard')}
+              className="inline-flex items-center px-4 py-2 bg-orange-600 hover:bg-orange-700 text-white text-sm font-medium rounded-lg transition-colors"
+            >
+              <Wrench className="w-4 h-4 mr-2" />
+              Solve
+            </button>
+          </div>
 
           {/* Right: User Actions */}
           <div className="flex items-center space-x-3">

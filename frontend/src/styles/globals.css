@@ -129,43 +129,148 @@
   }
   
   /* GitHub Labels */
+  /* 
+   * GitHub Labels - Consistent Design System
+   * 
+   * Usage:
+   * - Base class: `github-label` (required)
+   * - Type classes: `github-label-{type}` (bug, enhancement, feature, security)
+   * - Severity classes: `github-label-{severity}` (low, easy, medium, high, hard, critical)
+   * - Status classes: `github-label-{status}` (open, closed, in-progress)
+   * - Special classes: `github-label-{special}` (ai-generated, manual, bounty, default)
+   * - Outline variant: `github-label-outline` (for secondary labels)
+   * 
+   * Example: <span className="github-label github-label-bug">bug</span>
+   * 
+   * Use the utility functions in utils/labelUtils.ts for automatic classification
+   */
   .github-label {
-    @apply inline-flex items-center px-2 py-1 text-xs font-medium rounded-full;
+    @apply inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full border;
+    transition: all 0.2s ease;
   }
   
+  .github-label:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  }
+  
+  /* Issue Type Labels - Transparent Design */
   .github-label-bug {
-    background-color: #da3633;
-    color: #ffffff;
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
   }
   
   .github-label-enhancement {
-    background-color: #0969da;
-    color: #ffffff;
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  
+  .github-label-feature {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.3);
   }
   
   .github-label-security {
-    background-color: #8250df;
-    color: #ffffff;
+    background-color: rgba(239, 68, 68, 0.2);
+    color: #fca5a5;
+    border-color: rgba(239, 68, 68, 0.3);
   }
   
+  /* Severity/Priority Labels - Transparent Design */
   .github-label-low {
-    background-color: #1f883d;
-    color: #ffffff;
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  
+  .github-label-easy {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
   }
   
   .github-label-medium {
-    background-color: #d29922;
-    color: #ffffff;
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.3);
   }
   
   .github-label-high {
-    background-color: #cf222e;
-    color: #ffffff;
+    background-color: rgba(249, 115, 22, 0.2);
+    color: #fdba74;
+    border-color: rgba(249, 115, 22, 0.3);
+  }
+  
+  .github-label-hard {
+    background-color: rgba(249, 115, 22, 0.2);
+    color: #fdba74;
+    border-color: rgba(249, 115, 22, 0.3);
   }
   
   .github-label-critical {
-    background-color: #8b0000;
-    color: #ffffff;
+    background-color: rgba(220, 38, 38, 0.2);
+    color: #fca5a5;
+    border-color: rgba(220, 38, 38, 0.3);
+  }
+  
+  /* Status Labels - Transparent Design */
+  .github-label-open {
+    background-color: rgba(34, 197, 94, 0.2);
+    color: #86efac;
+    border-color: rgba(34, 197, 94, 0.3);
+  }
+  
+  .github-label-closed {
+    background-color: rgba(107, 114, 128, 0.2);
+    color: #d1d5db;
+    border-color: rgba(107, 114, 128, 0.3);
+  }
+  
+  .github-label-in-progress {
+    background-color: rgba(59, 130, 246, 0.2);
+    color: #93c5fd;
+    border-color: rgba(59, 130, 246, 0.3);
+  }
+  
+  /* Special Labels - Transparent Design */
+  .github-label-ai-generated {
+    background-color: rgba(168, 85, 247, 0.2);
+    color: #c4b5fd;
+    border-color: rgba(168, 85, 247, 0.3);
+  }
+  
+  .github-label-manual {
+    background-color: rgba(5, 150, 105, 0.2);
+    color: #6ee7b7;
+    border-color: rgba(5, 150, 105, 0.3);
+  }
+  
+  .github-label-bounty {
+    background-color: rgba(245, 158, 11, 0.2);
+    color: #fcd34d;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  
+  /* Default/Generic Label - Transparent Design */
+  .github-label-default {
+    background-color: rgba(107, 114, 128, 0.2);
+    color: #d1d5db;
+    border-color: rgba(107, 114, 128, 0.3);
+  }
+  
+  /* Outlined variant for secondary labels */
+  .github-label-outline {
+    background-color: transparent;
+    color: #7d8590;
+    border-color: #30363d;
+  }
+  
+  .github-label-outline:hover {
+    background-color: #30363d;
+    color: #f0f6fc;
   }
   
   /* GitHub Counter Badges */
