@@ -7,7 +7,7 @@ import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
 import { getTypeColor, getSeverityColor } from '../../utils/labelUtils';
-import { useWallet } from '../../contexts/WalletContext';
+// import { useWallet } from '../../contexts/WalletContext'; // Not needed for hardcoded flow
 
 interface Assignment {
   id: number;
@@ -56,7 +56,7 @@ type GitHubIssue = {
 export default function SolverDashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  const { account, isConnected, sendTransaction } = useWallet();
+  // const { account, isConnected, sendTransaction } = useWallet(); // Not needed for hardcoded flow
   
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -225,66 +225,21 @@ export default function SolverDashboard() {
     });
   };
 
-  // Switch to Base network
-  const switchToBaseNetwork = async () => {
-    if (!window.ethereum) {
-      throw new Error('MetaMask is not installed. Please install MetaMask to use this feature.');
-    }
-
-    try {
-      // Try to switch to Base network
-      await window.ethereum.request({
-        method: 'wallet_switchEthereumChain',
-        params: [{ chainId: '0x2105' }], // Base mainnet chain ID
-      });
-    } catch (switchError: any) {
-      // If the network is not added to MetaMask, add it
-      if (switchError.code === 4902) {
-        try {
-          await window.ethereum.request({
-            method: 'wallet_addEthereumChain',
-            params: [
-              {
-                chainId: '0x2105',
-                chainName: 'Base',
-                nativeCurrency: {
-                  name: 'Ethereum',
-                  symbol: 'ETH',
-                  decimals: 18,
-                },
-                rpcUrls: ['https://mainnet.base.org'],
-                blockExplorerUrls: ['https://basescan.org/'],
-              },
-            ],
-          });
-        } catch (addError) {
-          throw new Error('Failed to add Base network to MetaMask.');
-        }
-      } else {
-        throw new Error('Failed to switch to Base network. Please switch manually in MetaMask.');
-      }
-    }
-  };
-
-  // Handle staking and assignment
+  // Handle staking and assignment (Hardcoded - No real contract integration)
   const handleStakeAndAssign = async () => {
-    if (!selectedIssue || !account) {
-      alert('Please connect your wallet first.');
+    if (!selectedIssue) {
+      alert('Please select an issue first.');
       return;
     }
 
     setIsStaking(true);
 
     try {
-      // Switch to Base network
-      await switchToBaseNetwork();
+      // Simulate processing delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Simulate staking transaction (0 ETH transaction for demo)
-      const txHash = await sendTransaction({
-        to: account, // Send to self for demo
-        value: '0', // 0 ETH
-        gasLimit: '21000',
-      });
+      // Generate a mock transaction hash
+      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
 
       // Create assignment data
       const assignmentData: Assignment = {
@@ -300,9 +255,9 @@ export default function SolverDashboard() {
           bounty: selectedIssue.bounty,
           issueNumber: selectedIssue.issueNumber,
         },
-        stakeAmount: '0.5', // Fixed stake amount for display
-        transactionHash: txHash,
-        assignedTo: account,
+        stakeAmount: '0.5', // Hardcoded stake amount
+        transactionHash: mockTxHash,
+        assignedTo: 'demo-user', // Hardcoded demo user
         assignedAt: new Date().toISOString(),
         status: 'assigned',
         submissionStatus: 'not_submitted'
@@ -321,18 +276,12 @@ export default function SolverDashboard() {
       setShowStakingModal(false);
       setAssignments(existingAssignments); // Update local state
       
+      // Show success message
+      alert(`Issue assigned successfully! Transaction: ${mockTxHash}`);
+      
     } catch (error: any) {
       console.error('Error staking and assigning:', error);
-      
-      if (error.message.includes('Base network')) {
-        alert(`Network Error: ${error.message}. Please ensure MetaMask is installed and try again.`);
-      } else if (error.code === 4001) {
-        alert('Transaction cancelled by user.');
-      } else if (error.code === -32603) {
-        alert('Transaction failed. Please check your balance and try again.');
-      } else {
-        alert('Failed to stake and assign issue. Please try again.');
-      }
+      alert('Failed to assign issue. Please try again.');
     } finally {
       setIsStaking(false);
     }
@@ -431,6 +380,11 @@ export default function SolverDashboard() {
                   Assignments
                   <span className="github-counter ml-2">{totalAssigned}</span>
                 </button>
+                <button className="github-nav-tab">
+                  <Search className="w-4 h-4 mr-2" />
+                  Available Issues
+                  <span className="github-counter ml-2">{issues.length}</span>
+                </button>
               </div>
             </div>
 
@@ -486,14 +440,8 @@ export default function SolverDashboard() {
                     <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
                     <h3 className="github-h3 mb-2">No assignments yet</h3>
                     <p className="github-text-muted mb-4">
-                      You haven't been assigned any issues yet. Browse the marketplace to find issues to solve.
+                      You haven't been assigned any issues yet. Scroll down to see available issues you can take on.
                     </p>
-                    <button 
-                      onClick={() => router.push('/marketplace')}
-                      className="btn-github-primary"
-                    >
-                      Browse Issues
-                    </button>
                   </div>
                 ) : (
                   assignments.map((assignment) => {
@@ -622,6 +570,160 @@ export default function SolverDashboard() {
                   })
                 )}
               </div>
+
+              {/* Available Issues Section */}
+              <div className="mt-12">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="github-h2">Available Issues</h2>
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-1 relative">
+                      <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                      <input
+                        type="text"
+                        placeholder="Search issues..."
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        className="github-search pl-10 pr-4 py-2 w-full"
+                      />
+                    </div>
+                    
+                    <select
+                      value={selectedType}
+                      onChange={(e) => setSelectedType(e.target.value)}
+                      className="github-select py-2 pr-8"
+                    >
+                      <option value="all">All types</option>
+                      <option value="security">Security</option>
+                      <option value="bug">Bug</option>
+                      <option value="performance">Performance</option>
+                    </select>
+                    
+                    <select
+                      value={selectedSeverity}
+                      onChange={(e) => setSelectedSeverity(e.target.value)}
+                      className="github-select py-2 pr-8"
+                    >
+                      <option value="all">All severities</option>
+                      <option value="critical">Critical</option>
+                      <option value="high">High</option>
+                      <option value="medium">Medium</option>
+                      <option value="low">Low</option>
+                    </select>
+                  </div>
+                </div>
+
+                {/* Issues List */}
+                <div className="space-y-4">
+                  {issuesLoading ? (
+                    <div className="github-card p-12 text-center">
+                      <div className="animate-spin w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                      <h3 className="github-h3 mb-2">Loading issues...</h3>
+                      <p className="github-text-muted">
+                        Fetching issues from GitHub repositories.
+                      </p>
+                    </div>
+                  ) : issuesError ? (
+                    <div className="github-card p-12 text-center">
+                      <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                      <h3 className="github-h3 mb-2">Failed to load issues</h3>
+                      <p className="github-text-muted mb-4">{issuesError}</p>
+                      <button 
+                        onClick={() => window.location.reload()} 
+                        className="btn-github-primary text-sm"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : filteredIssues.length === 0 ? (
+                    <div className="github-card p-12 text-center">
+                      <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
+                      <h3 className="github-h3 mb-2">No issues found</h3>
+                      <p className="github-text-muted">
+                        Try adjusting your search or filter criteria.
+                      </p>
+                    </div>
+                  ) : (
+                    filteredIssues.map((issue, index) => {
+                      const TypeIcon = getTypeIcon(issue.type);
+                      
+                      return (
+                        <div key={issue.id} className="github-card-hover p-6">
+                          <div className="flex flex-col md:flex-row md:items-center justify-between mb-4">
+                            <div>
+                              <h3 className="github-text-title text-lg mb-2 flex items-center">
+                                <TypeIcon className={`w-5 h-5 mr-2 ${issue.type === 'security' ? 'text-purple-500' : issue.type === 'bug' ? 'text-red-500' : 'text-yellow-500'}`} />
+                                <a 
+                                  href={issue.html_url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="hover:text-blue-400 transition-colors"
+                                >
+                                  {issue.title}
+                                  <span className="github-issue-number ml-2">#{issue.issueNumber}</span>
+                                </a>
+                              </h3>
+                              <div className="flex flex-wrap items-center gap-3 text-sm github-text-muted">
+                                <span className="flex items-center">
+                                  <Github className="w-4 h-4 mr-1" />
+                                  {issue.repository}
+                                </span>
+                                <span>opened {formatDate(issue.createdAt)} by {issue.author}</span>
+                                <span>{issue.comments} comments</span>
+                                <span>Bounty: {issue.bounty} ETH</span>
+                                <span>{issue.estimatedHours}h estimated</span>
+                              </div>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2 mt-4 md:mt-0">
+                              <span className={`github-label ${getSeverityColor(issue.severity)}`}>
+                                {issue.severity}
+                              </span>
+                              <span className={`github-label ${getTypeColor(issue.type)}`}>
+                                {issue.type}
+                              </span>
+                            </div>
+                          </div>
+
+                          <p className="github-text-muted mb-4 line-clamp-2">{issue.description}</p>
+
+                          <div className="flex flex-wrap items-center gap-2 mb-4">
+                            {issue.tags.slice(0, 3).map((tag, index) => (
+                              <span key={index} className="github-label github-label-default">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+
+                          <div className="border-t border-gray-700 pt-4">
+                            <div className="flex flex-col sm:flex-row gap-3">
+                              <a
+                                href={issue.repoUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="btn-github-secondary text-sm flex items-center justify-center"
+                              >
+                                <Github className="w-4 h-4 mr-2" />
+                                View Repository
+                              </a>
+                              
+                              <button
+                                onClick={() => {
+                                  setSelectedIssue(issue);
+                                  setShowStakingModal(true);
+                                }}
+                                className="btn-github-primary text-sm flex items-center justify-center"
+                              >
+                                <Target className="w-4 h-4 mr-2" />
+                                Take Issue (Demo)
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </main>
@@ -699,6 +801,85 @@ export default function SolverDashboard() {
                     <div className="flex items-center justify-center">
                       <Send className="w-4 h-4 mr-2" />
                       Submit Solution
+                    </div>
+                  )}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Staking Modal */}
+        {showStakingModal && selectedIssue && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="github-card max-w-md w-full p-6" style={{ backgroundColor: '#161b22' }}>
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="github-h3 mb-0">Assign Issue (Demo)</h3>
+                <button
+                  onClick={() => setShowStakingModal(false)}
+                  className="p-2 text-gray-400 hover:text-white transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+
+              <div className="mb-6">
+                <h4 className="github-text-title text-lg mb-2">{selectedIssue.title}</h4>
+                <p className="github-text-muted text-sm mb-4">{selectedIssue.description}</p>
+                
+                <div className="github-card p-3 mb-4">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="github-text-muted">Repository:</span>
+                    <span className="github-text-link">{selectedIssue.repository}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="github-text-muted">Bounty:</span>
+                    <span className="text-green-400 font-medium">{selectedIssue.bounty} ETH</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm mt-1">
+                    <span className="github-text-muted">Estimated time:</span>
+                    <span className="text-white">{selectedIssue.estimatedHours} hours</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <label htmlFor="stake" className="block text-sm font-medium github-text-title mb-2">
+                  Stake Amount (Hardcoded)
+                </label>
+                <input
+                  type="text"
+                  id="stake"
+                  value={stakeAmount}
+                  className="github-input w-full"
+                  disabled
+                />
+                <p className="mt-2 text-sm github-text-muted">
+                  This is a hardcoded demo stake amount. No real blockchain transaction will occur.
+                </p>
+              </div>
+
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => setShowStakingModal(false)}
+                  className="btn-github-secondary flex-1"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleStakeAndAssign}
+                  disabled={isStaking}
+                  className="btn-github-primary flex-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isStaking ? (
+                    <div className="flex items-center justify-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Processing...
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center">
+                      <Target className="w-4 h-4 mr-2" />
+                      Assign Issue (Demo)
                     </div>
                   )}
                 </button>

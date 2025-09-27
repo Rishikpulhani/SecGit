@@ -46,7 +46,7 @@ interface ProcessedIssue {
 export async function GET(request: NextRequest) {
   try {
     const repositories = [
-      'gyanshupathak/health_panel',
+      'gyanshupathak/heatlh_panel',
       'gyanshupathak/SolVest'
     ];
 
