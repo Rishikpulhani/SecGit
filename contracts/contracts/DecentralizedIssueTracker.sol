@@ -16,6 +16,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     event AddressVerified(address indexed verifiedAddress);
     event AddressUnverified(address indexed unverifiedAddress);
     event DeadlineExpired(uint256 indexed issueId, address indexed contributor);
+    event AICreditsAdded(address indexed org, uint256 amount, uint256 newBalance);
+    event AICreditsUsed(address indexed org, uint256 amount, uint256 remainingBalance);
     
     enum Difficulty { EASY, MEDIUM, HARD }
     
@@ -28,6 +30,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         uint256 easyDuration;
         uint256 mediumDuration;
         uint256 hardDuration;
+        uint256 aiCredits;
     }
     
     struct Issue {
@@ -55,6 +58,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     
     uint256 public nextIssueId = 1;
     uint256 public constant MIN_ORG_STAKE = 0.01 ether;
+    uint256 public constant AI_COMPUTATION_COST = 0.001 ether;
     address public AI_AGENT_ADDRESS = 0x0000000000000000000000000000000000000000; 
 
     uint256 public constant MIN_CONTRIBUTOR_STAKE_PERCENTAGE = 5;
@@ -113,7 +117,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
             owner: msg.sender,
             easyDuration: easyDur,
             mediumDuration: mediumDur,
-            hardDuration: hardDur
+            hardDuration: hardDur,
+            aiCredits: 0
         });
         
         emit OrganizationRegistered(msg.sender, _repoUrl, msg.value);
@@ -124,6 +129,16 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         
         organizations[msg.sender].totalStaked += msg.value;
         organizations[msg.sender].availableRewards += msg.value;
+    }
+    
+    function addAICredits() external payable onlyRegisteredOrg nonReentrant {
+        require(msg.value > 0, "Must send some ETH");
+        
+        payable(AI_AGENT_ADDRESS).transfer(msg.value);
+        
+        organizations[msg.sender].aiCredits += msg.value;
+        
+        emit AICreditsAdded(msg.sender, msg.value, organizations[msg.sender].aiCredits);
     }
     
     function createIssue(
@@ -137,6 +152,10 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         require(_bounty > 0, "Bounty must be greater than 0");
         require(organizations[_org].availableRewards >= _bounty, "Insufficient organization funds");
         require(bytes(_githubIssueUrl).length > 0, "GitHub issue URL cannot be empty");
+        require(organizations[_org].aiCredits >= AI_COMPUTATION_COST, "Insufficient AI credits");
+        
+        organizations[_org].aiCredits -= AI_COMPUTATION_COST;
+        emit AICreditsUsed(_org, AI_COMPUTATION_COST, organizations[_org].aiCredits);
         
         uint256 issueId = nextIssueId++;
         
@@ -201,18 +220,14 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     function gradeIssueByAI(uint256 _issueId, uint256 _confidenceScore) external nonReentrant onlyAIAgent{
         Issue storage issue = issues[_issueId];
         require(issue.id != 0, "Issue does not exist");
-        require(msg.sender == organizations[issue.org].owner, "Only organization owner can grade issue");
         require(issue.isAssigned, "Issue not assigned");
         require(!issue.isCompleted, "Issue already completed");
+        require(organizations[issue.org].aiCredits >= AI_COMPUTATION_COST, "Insufficient AI credits for grading");
+        
+        organizations[issue.org].aiCredits -= AI_COMPUTATION_COST;
+        emit AICreditsUsed(issue.org, AI_COMPUTATION_COST, organizations[issue.org].aiCredits);
         
         issue.presentHackerConfidenceScore = _confidenceScore;
-        issue.isCompleted = true;
-        uint256 contributorStake = contributorStakes[issue.assignedTo];
-        uint256 totalReward = issue.bounty + contributorStake;
-        contributorStakes[issue.assignedTo] -= contributorStake;
-        payable(issue.assignedTo).transfer(totalReward);
-        
-        emit IssueCompleted(_issueId, issue.assignedTo, totalReward);
     }
 
     function completeIssue(uint256 _issueId) external nonReentrant {
@@ -311,7 +326,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         address owner,
         uint256 easyDuration,
         uint256 mediumDuration,
-        uint256 hardDuration
+        uint256 hardDuration,
+        uint256 aiCredits
     ) {
         Organization storage org = organizations[_org];
         return (
@@ -322,7 +338,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
             org.owner,
             org.easyDuration,
             org.mediumDuration,
-            org.hardDuration
+            org.hardDuration,
+            org.aiCredits
         );
     }
     
@@ -376,5 +393,9 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     
     function getContractBalance() external view returns (uint256) {
         return address(this).balance;
+    }
+    
+    function getAICredits(address _org) external view returns (uint256) {
+        return organizations[_org].aiCredits;
     }
 }
