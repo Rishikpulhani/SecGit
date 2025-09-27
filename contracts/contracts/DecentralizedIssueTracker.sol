@@ -47,7 +47,6 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     mapping(address => uint256) public contributorStakes;
     mapping(address => uint256[]) public organizationIssues;
     mapping(address => uint256[]) public contributorAssignedIssues;
-    mapping(address => bool) public verifiedAddresses;
     
     uint256 public nextIssueId = 1;
     uint256 public constant MIN_ORG_STAKE = 0.01 ether;
@@ -275,21 +274,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         emit StakeWithdrawn(msg.sender, stakeAmount);
     }
     
-    function verifyAddress(address _address) external onlyOwner {
-        require(_address != address(0), "Cannot verify zero address");
-        require(!verifiedAddresses[_address], "Address already verified");
-        
-        verifiedAddresses[_address] = true;
-        emit AddressVerified(_address);
-    }
-    
-    function unverifyAddress(address _address) external onlyOwner {
-        require(_address != address(0), "Cannot unverify zero address");
-        require(verifiedAddresses[_address], "Address not verified");
-        
-        verifiedAddresses[_address] = false;
-        emit AddressUnverified(_address);
-    }
+
     
     function updateDeadlineDurations(
         uint256 _easyDuration,
@@ -303,10 +288,6 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         EASY_DURATION = _easyDuration;
         MEDIUM_DURATION = _mediumDuration;
         HARD_DURATION = _hardDuration;
-    }
-    
-    function isAddressVerified(address _address) external view returns (bool) {
-        return verifiedAddresses[_address];
     }
     
     function getOrganizationInfo(address _org) external view returns (
@@ -362,10 +343,6 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     function isIssueExpired(uint256 _issueId) external view returns (bool) {
         Issue storage issue = issues[_issueId];
         return issue.isAssigned && !issue.isCompleted && block.timestamp > issue.deadline;
-    }
-    
-    function emergencyWithdraw() external onlyOwner {
-        payable(owner()).transfer(address(this).balance);
     }
     
     function getContractBalance() external view returns (uint256) {
