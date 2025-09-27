@@ -19,7 +19,7 @@
  */
 
 const { ethers } = require("hardhat");
-
+const AIAgentAddress = ""; // Replace with the actual address you want to add
 module.exports = async () => {
   // Assign the first signer, which comes from the first privateKey from our configuration in hardhat.config.js, to a wallet variable.
   let wallet = (await ethers.getSigners())[0];
@@ -33,30 +33,18 @@ module.exports = async () => {
   const DecentralizedIssueTracker = await ethers.getContractFactory("DecentralizedIssueTracker", wallet);
 
   // Constructor parameters for DecentralizedIssueTracker
-  const initialVerifiedAddresses = [
-    wallet.address  // Add the deployer as an initial verified address
-    // You can add more addresses here if needed
-    // "0x742d35Cc6634C0532925a3b8D400C8b8E9c7D65F"
-  ];
+  const aiAgentAddress = wallet.address; // Replace with the actual address you want to add
   
-  // Duration settings (in seconds)
-  const easyDuration = 7 * 24 * 60 * 60;    // 7 days
-  const mediumDuration = 30 * 24 * 60 * 60; // 30 days  
-  const hardDuration = 150 * 24 * 60 * 60;  // 150 days
+  // Duration settings (in seconds) 150 days
 
   console.log("📋 Constructor parameters:");
-  console.log("  Initial verified addresses:", initialVerifiedAddresses);
-  console.log("  Easy duration:", easyDuration, "seconds (7 days)");
-  console.log("  Medium duration:", mediumDuration, "seconds (30 days)");
-  console.log("  Hard duration:", hardDuration, "seconds (150 days)");
+  console.log("AI addresses:", aiAgentAddress);
+
 
   // Using already initialized contract factory object with our contract, we can invoke deploy function to deploy the contract.
   // Accepts constructor parameters from our contract
   const decentralizedIssueTracker = await DecentralizedIssueTracker.deploy(
-    initialVerifiedAddresses,  // address[] memory _initialVerifiedAddresses
-    easyDuration,             // uint256 _easyDuration
-    mediumDuration,           // uint256 _mediumDuration
-    hardDuration              // uint256 _hardDuration
+    aiAgentAddress,  // address[] memory _initialVerifiedAddresse
   );
 
   console.log("⏳ Waiting for deployment confirmation...");

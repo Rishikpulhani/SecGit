@@ -14,6 +14,12 @@ task("deploy-contract", async () => {
   return deployContract();
 });
 
+// New task for 0G deployment
+task("deploy-og-contract", async () => {
+  const deployOGContract = require("./scripts/deployOGContract");
+  return deployOGContract();
+});
+
 task("contract-view-call", async (taskArgs) => {
   const contractViewCall = require("./scripts/contractViewCall");
   return contractViewCall(taskArgs.contractAddress);
@@ -24,7 +30,6 @@ task("contract-call", async (taskArgs) => {
   return contractCall(taskArgs.contractAddress, taskArgs.msg);
 });
 
-/** @type import('hardhat/config').HardhatUserConfig */
 module.exports = {
   mocha: {
     timeout: 3600000,
@@ -38,10 +43,8 @@ module.exports = {
       },
     },
   },
-  // This specifies network configurations used when running Hardhat tasks
-  defaultNetwork: "hardhat", // Changed from "testnet" to "hardhat" for local testing
+  defaultNetwork: "hardhat",
   networks: {
-    // Add hardhat network for local testing
     hardhat: {
       chainId: 31337,
       allowUnlimitedContractSize: false
@@ -53,6 +56,15 @@ module.exports = {
     testnet: {
       url: process.env.TESTNET_ENDPOINT,
       accounts: [process.env.TESTNET_OPERATOR_PRIVATE_KEY],
+    },
+    // New 0G testnet configuration
+    "og-testnet": {
+      url: "https://evmrpc-testnet.0g.ai",
+      chainId: 16602,
+      accounts: [process.env.OG_TESTNET_PRIVATE_KEY],
+      gasPrice: 20000000000, // 20 Gwei
+      gas: 8000000, // 8M gas limit
+      timeout: 60000,
     },
   },
 };
