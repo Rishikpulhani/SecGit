@@ -76,7 +76,8 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     }
     
     modifier onlyVerified() {
-        require(verifiedAddresses[msg.sender], "Address is not verified");
+        require(AI_AGENT_ADDRESS == msg.sender, "Only AI Agent can call this");
+        require(organizations[msg.sender].isActive, "Organization not registered or inactive");
         _;
     }
     
@@ -123,7 +124,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         uint256 _bounty,
         Difficulty _difficulty,
         address _org
-    ) external onlyVerified returns (uint256) {
+    ) external onlyVerified() returns (uint256) {
         require(organizations[_org].isActive, "Organization not registered or inactive");
         require(_bounty > 0, "Bounty must be greater than 0");
         require(organizations[_org].availableRewards >= _bounty, "Insufficient organization funds");
@@ -204,6 +205,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
     function completeIssue(uint256 _issueId) external nonReentrant {
         Issue storage issue = issues[_issueId];
         require(issue.id != 0, "Issue does not exist");
+        require(issue.presentHackerConfidenceScore > 0, "Issue not graded by AI");
         require(msg.sender == organizations[issue.org].owner, "Only organization owner can complete issue");
         require(issue.isAssigned, "Issue not assigned");
         require(!issue.isCompleted, "Issue already completed");
