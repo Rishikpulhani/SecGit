@@ -208,7 +208,7 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         require(issue.isAssigned, "Issue not assigned");
         require(!issue.isCompleted, "Issue already completed");
         
-        issue.isCompleted = true;
+        issue.isCompleted = true; // Assuming full confidence on manual completion
         uint256 contributorStake = contributorStakes[issue.assignedTo];
         uint256 totalReward = issue.bounty + contributorStake;
         contributorStakes[issue.assignedTo] -= contributorStake;
@@ -228,13 +228,12 @@ contract DecentralizedIssueTracker is ReentrancyGuard, Ownable, Pausable {
         issue.isAssigned = false;
         issue.assignedTo = address(0);
         issue.deadline = 0;
+        issue.presentHackerConfidenceScore = 0;
         
         organizations[issue.org].availableRewards += issue.bounty;
         uint256 contributorStake = contributorStakes[msg.sender];
         contributorStakes[msg.sender] -= contributorStake;
         _removeIssueFromContributor(msg.sender, _issueId);
-        
-        // Return stake to contributor
         payable(msg.sender).transfer(contributorStake);
         
         emit DeadlineExpired(_issueId, msg.sender);
