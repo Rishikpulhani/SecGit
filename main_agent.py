@@ -14,21 +14,65 @@ logger = logging.getLogger(__name__)
 
 # Fetch.ai SDK imports
 from fetchai import fetch
-try:
-    from uagents.crypto import Identity
-except ImportError:
-    try:
-        from uagents_core.crypto import Identity
-    except ImportError:
-        print("Warning: Identity module not available. Some features may be limited.")
-        Identity = None
 
+# Import fetchai communication (this works!)
 try:
     from fetchai.communication import send_message_to_agent, parse_message_from_agent
+    print("✅ Successfully imported fetchai.communication")
 except ImportError:
     print("Warning: Fetch.ai communication module not available. Using simplified mode.")
     send_message_to_agent = None
     parse_message_from_agent = None
+
+# Try to import Identity from available packages
+Identity = None
+try:
+    # Try fetchai first (might have Identity)
+    from fetchai.crypto import Identity
+    print("✅ Successfully imported Identity from fetchai.crypto")
+except ImportError:
+    try:
+        # Try uagents_core with different path
+        from uagents_core import Identity
+        print("✅ Successfully imported Identity from uagents_core")
+    except ImportError:
+        try:
+            # Create a simple Identity class as fallback
+            import hashlib
+            import secrets
+            import base64
+            
+            class SimpleIdentity:
+                def __init__(self, seed, index=0):
+                    # Create a deterministic address from seed
+                    combined = f"{seed}_{index}".encode()
+                    hash_obj = hashlib.sha256(combined)
+                    self.address = f"agent1q{hash_obj.hexdigest()[:56]}"
+                    # Store the seed for signing
+                    self._seed_hash = hashlib.sha256(seed.encode()).digest()
+                
+                @classmethod
+                def from_seed(cls, seed, index=0):
+                    return cls(seed, index)
+                
+                def sign_digest(self, digest):
+                    """Sign a digest using the identity's private key (simulated)."""
+                    # Create a deterministic "signature" from seed + digest
+                    combined = self._seed_hash + digest
+                    signature_hash = hashlib.sha256(combined).digest()
+                    # Return a base64-encoded signature (64 bytes)
+                    return base64.b64encode(signature_hash + signature_hash[:32]).decode()
+                
+                def verify_digest(self, digest, signature):
+                    """Verify a signature against a digest."""
+                    expected_signature = self.sign_digest(digest)
+                    return signature == expected_signature
+            
+            Identity = SimpleIdentity
+            print("✅ Using fallback Identity implementation")
+        except Exception as e:
+            print(f"Warning: Could not create Identity implementation: {e}")
+            Identity = None
 
 # Load environment variables
 load_dotenv()
@@ -40,7 +84,7 @@ class EnhancedASIOneRepoAnalyzer:
         # ASI:One configuration
         self.asi_one_api_key = os.getenv("ASI_ONE_API_KEY")
         if not self.asi_one_api_key:
-            logger.error("❌ ASI_ONE_API_KEY not found in .env file")
+            logger.error("  ASI_ONE_API_KEY not found in .env file")
             raise ValueError("ASI_ONE_API_KEY not found in .env file. Please add it.")
         else:
             logger.info("✅ ASI:One API key loaded")
@@ -48,7 +92,7 @@ class EnhancedASIOneRepoAnalyzer:
         # GitHub configuration
         self.github_token = os.getenv("GITHUB_TOKEN")
         if not self.github_token:
-            logger.error("❌ GITHUB_TOKEN not found in .env file")
+            logger.error("  GITHUB_TOKEN not found in .env file")
             raise ValueError("GITHUB_TOKEN not found in .env file. Please add it.")
         else:
             logger.info("✅ GitHub token loaded")
@@ -61,15 +105,27 @@ class EnhancedASIOneRepoAnalyzer:
             raise ValueError("AI_IDENTITY_SEED not found in .env file. Please add it.")
         
         # Initialize AI identity for agent communication (if available)
+        print(f"🔍 Debug - Identity module: {Identity}")
+        print(f"🔍 Debug - AI_IDENTITY_SEED: {self.ai_identity_seed[:20]}..." if self.ai_identity_seed else "None")
+        
         if Identity and self.ai_identity_seed:
-            self.ai_identity = Identity.from_seed(self.ai_identity_seed, 0)
+            try:
+                self.ai_identity = Identity.from_seed(self.ai_identity_seed, 0)
+                logger.info(f"✅ AI Identity created successfully: {self.ai_identity.address}")
+                print(f"✅ AI Identity created successfully: {self.ai_identity.address}")
+            except Exception as e:
+                logger.error(f"  Failed to create AI Identity: {e}")
+                print(f"  Failed to create AI Identity: {e}")
+                self.ai_identity = None
         else:
             self.ai_identity = None
-            print("Warning: AI Identity not initialized. Agent communication features limited.")
+            reason = "Identity module not available" if not Identity else "AI_IDENTITY_SEED not available"
+            logger.warning(f"Warning: AI Identity not initialized. Reason: {reason}")
+            print(f"Warning: AI Identity not initialized. Reason: {reason}")
         
         # ASI:One configuration
         self.asi_endpoint = "https://api.asi1.ai/v1/chat/completions"
-        self.asi_model = "asi1-fast-agentic"
+        self.asi_model = "asi1-agentic"
         self.timeout = 120
         self.session_map: Dict[str, str] = {}
         
@@ -157,10 +213,10 @@ class EnhancedASIOneRepoAnalyzer:
                 return full_text
                 
         except requests.exceptions.RequestException as e:
-            logger.error(f"❌ ASI:One API request failed: {str(e)}")
+            logger.error(f"  ASI:One API request failed: {str(e)}")
             raise
         except Exception as e:
-            logger.error(f"❌ Unexpected error in ASI:One request: {str(e)}")
+            logger.error(f"  Unexpected error in ASI:One request: {str(e)}")
             raise
     
     def discover_analysis_agents(self, repo_url: str) -> List[Dict[str, Any]]:
@@ -298,10 +354,10 @@ class EnhancedASIOneRepoAnalyzer:
                 return f"Simulated request to {agent_name}"
             
         except Exception as e:
-            print(f"   ❌ Failed to query {agent_name}: {e}")
+            print(f"     Failed to query {agent_name}: {e}")
             return None
     
-    def collect_agent_responses(self, selected_agents: List[Dict[str, Any]], wait_time: int = 30) -> List[str]:
+    def collect_agent_responses(self, selected_agents: List[Dict[str, Any]], repo_url: str, wait_time: int = 30) -> List[str]:
         """Collect responses from queried agents (simplified version)."""
         print(f"⏳ Waiting {wait_time}s for agent responses...")
         
@@ -312,28 +368,42 @@ class EnhancedASIOneRepoAnalyzer:
         for agent in selected_agents:
             agent_name = agent.get('name', 'Unknown')
             
-            # Simulate agent response (in real implementation, you'd receive these via webhook/messaging)
+            # Generate diverse simulated responses based on agent type and repository
+            import random
+            
+            # Create agent-specific response variations
+            feature_suggestions = [
+                ["Machine Learning Integration", "AI-powered content analysis", "Automated content moderation", "Smart recommendation engine"],
+                ["Advanced Analytics Dashboard", "User behavior tracking", "Performance metrics visualization", "Custom reporting tools"],
+                ["Mobile App Integration", "Progressive Web App features", "Offline synchronization", "Push notifications"],
+                ["API Gateway and Microservices", "Service mesh architecture", "Container orchestration", "Auto-scaling capabilities"],
+                ["Enhanced Security Features", "End-to-end encryption", "Advanced authentication", "Security audit logging"],
+                ["Content Management System", "Rich text editor", "Media file handling", "Version control for content"],
+                ["Social Features Integration", "User profiles and connections", "Comment and rating system", "Community moderation tools"],
+                ["Data Export and Integration", "CSV/JSON export functionality", "Third-party API integrations", "Webhook support"]
+            ]
+            
+            # Select random features for this agent
+            selected_features = random.choice(feature_suggestions)
+            difficulties = ["Easy", "Medium", "Hard"]
+            
             simulated_response = f"""
             Analysis from {agent_name}:
             
-            Repository Analysis for the provided URL:
+            Repository Analysis for {repo_url}:
             
             Suggested Features:
-            1. **Enhanced User Authentication** (Medium difficulty)
-               - Implement OAuth integration with Google/GitHub
-               - Add two-factor authentication support
+            1. **{selected_features[0]}** ({random.choice(difficulties)} difficulty)
+               - {selected_features[1]}
+               - Advanced implementation with modern best practices
                
-            2. **Real-time Data Synchronization** (Hard difficulty)
-               - WebSocket implementation for live updates
-               - Conflict resolution for concurrent edits
+            2. **{selected_features[2]}** ({random.choice(difficulties)} difficulty)
+               - {selected_features[3]}
+               - Scalable architecture with performance optimization
                
-            3. **Advanced Search and Filtering** (Easy difficulty)
-               - Full-text search with fuzzy matching
-               - Multi-criteria filtering options
-               
-            4. **API Rate Limiting and Caching** (Medium difficulty)
-               - Redis-based caching layer
-               - Configurable rate limiting per user/endpoint
+            3. **Enhanced Developer Experience** ({random.choice(difficulties)} difficulty)
+               - Automated testing and CI/CD pipeline
+               - Code quality tools and documentation generation
             """
             
             responses.append(simulated_response)
@@ -433,7 +503,7 @@ class EnhancedASIOneRepoAnalyzer:
                     """
                 
             except Exception as e:
-                logger.error(f"❌ Attempt {attempt + 1} failed with exception: {e}")
+                logger.error(f" Attempt {attempt + 1} failed with exception: {e}")
         
         # If all attempts failed, use fallback
         logger.warning("⚠️ All ASI:One attempts failed, using intelligent fallback...")
@@ -564,7 +634,7 @@ class EnhancedASIOneRepoAnalyzer:
             logger.warning(f"⚠️ JSON decode error on attempt {attempt_num}: {e}")
             return None
         except Exception as e:
-            logger.error(f"❌ Unexpected error extracting JSON: {e}")
+            logger.error(f"  Unexpected error extracting JSON: {e}")
             return None
     
     def validate_and_fix_issue_data(self, issue_data: Dict[str, Any]) -> Dict[str, Any]:
@@ -753,7 +823,7 @@ class EnhancedASIOneRepoAnalyzer:
                 self.query_agent(agent, repo_url)
             
             # Step 4: Collect responses (simplified for now)
-            agent_responses = self.collect_agent_responses(selected_agents)
+            agent_responses = self.collect_agent_responses(selected_agents, repo_url)
             
             # Step 5: Synthesize responses with ASI:One
             synthesized_issue = self.synthesize_analysis(agent_responses, repo_url)
@@ -776,7 +846,7 @@ class EnhancedASIOneRepoAnalyzer:
             return result
             
         except Exception as e:
-            logger.error(f"❌ Repository analysis failed: {e}")
+            logger.error(f"  Repository analysis failed: {e}")
             return {
                 "success": False,
                 "error": str(e)
@@ -832,7 +902,7 @@ class EnhancedASIOneRepoAnalyzer:
             return result
             
         except Exception as e:
-            logger.error(f"❌ Direct synthesis failed: {e}")
+            logger.error(f"  Direct synthesis failed: {e}")
             return {
                 "success": False,
                 "error": f"Direct analysis failed: {str(e)}"
@@ -988,16 +1058,16 @@ def main():
                     print(f"Difficulty: {result['issue']['difficulty']} | Priority: {result['issue']['priority']}")
                     print(f"URL: {result['issue']['url']}")
                 else:
-                    print(f"\n❌ Analysis failed: {result['error']}")
+                    print(f"\n  Analysis failed: {result['error']}")
                     
             except KeyboardInterrupt:
                 print("\n👋 Goodbye!")
                 break
             except Exception as e:
-                print(f"\n❌ Unexpected error: {e}")
+                print(f"\n  Unexpected error: {e}")
                 
     except Exception as e:
-        print(f"❌ Initialization failed: {e}")
+        print(f"  Initialization failed: {e}")
         print("Please check your .env configuration and try again.")
 
 if __name__ == "__main__":
