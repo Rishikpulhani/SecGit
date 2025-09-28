@@ -1,5 +1,7 @@
 # SecGit - a highly automated and secure version of gitcoin
 Gitbook Documentation: https://ironjams-organization.gitbook.io/secgit 
+Vimeo link: https://vimeo.com/1122553628?share=copy
+
 
 <img width="3439" height="1789" alt="Untitled-2025-07-30-1446" src="https://github.com/user-attachments/assets/84c10968-ecf0-4162-94e2-bc828dee6b98" />
 
