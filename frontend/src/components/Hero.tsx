@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowRight, Shield, Coins, Users, Github, X, Zap, CheckCircle } from 'lucide-react';
 import { useWallet } from '../contexts/WalletContext';
-import { PAYMENT_CONFIG } from '../config/contract';
+import { PAYMENT_CONFIG, convertOgToEth, convertEthToOg } from '../config/contract';
 import { useSubmit } from '../contexts/SubmitContext';
 
 export default function Hero() {
@@ -13,10 +13,13 @@ export default function Hero() {
     account, 
     isConnected, 
     isOnCorrectNetwork, 
+    contract,
     connectWallet, 
     switchToCorrectNetwork, 
     registerRepository,
-    createContractIssue 
+    createContractIssue,
+    checkNetwork,
+    checkTransactionStatus
   } = useWallet();
   const { showSubmitModal, openSubmitModal, closeSubmitModal } = useSubmit();
   const [githubUrl, setGithubUrl] = useState('');
@@ -44,8 +47,8 @@ export default function Hero() {
       // Step 1: Network check (bypassed for Rabby wallet compatibility)
       setCurrentStatus('Using current network (0G-Galileo-Testnet detected)...');
 
-      // Step 2: Register repository with contract payment (0.000001 ETH)
-      setCurrentStatus(`Registering repository... (paying ${PAYMENT_CONFIG.ORG_REGISTRATION} ETH)`);
+      // Step 2: Register repository with contract payment (converted to ETH)
+      setCurrentStatus(`Registering repository... (paying ${PAYMENT_CONFIG.ORG_REGISTRATION} OG)`);
       const registerTx = await registerRepository(githubUrl);
       setTransactionHashes(prev => [...prev, registerTx]);
       setCurrentStatus('Repository registered successfully! ✅');
@@ -221,7 +224,7 @@ export default function Hero() {
 
             <p className="text-gray-300 mb-6">
               Enter your GitHub repository URL to start comprehensive security analysis. 
-              You'll pay {PAYMENT_CONFIG.ORG_REGISTRATION} ETH to register your repository and create bounties for discovered vulnerabilities.
+              You'll pay {PAYMENT_CONFIG.ORG_REGISTRATION} OG to register your repository and create bounties for discovered vulnerabilities.
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -247,9 +250,11 @@ export default function Hero() {
               {/* Wallet Connection Status */}
               <div className="bg-gray-800/50 rounded-lg p-4 border border-gray-600">
                 {isConnected ? (
-                  <div className="flex items-center text-green-400">
-                    <CheckCircle className="w-5 h-5 mr-2" />
-                    <span>Wallet Connected: {account?.substring(0, 6)}...{account?.substring(account.length - 4)}</span>
+                  <div>
+                    <div className="flex items-center text-green-400 mb-2">
+                      <CheckCircle className="w-5 h-5 mr-2" />
+                      <span>Wallet Connected: {account?.substring(0, 6)}...{account?.substring(account.length - 4)}</span>
+                    </div>
                   </div>
                 ) : (
                   <div>
@@ -290,7 +295,7 @@ export default function Hero() {
                   ) : (
                     <div className="flex items-center justify-center">
                       <Zap className="w-5 h-5 mr-2" />
-                      Submit & Analyze ({PAYMENT_CONFIG.ORG_REGISTRATION} ETH)
+                      Submit & Analyze ({PAYMENT_CONFIG.ORG_REGISTRATION} OG)
                     </div>
                   )}
                 </button>
@@ -313,15 +318,36 @@ export default function Hero() {
                   <div className="mt-4">
                     <p className="text-gray-300 text-sm mb-2">Transaction Hashes:</p>
                     {transactionHashes.map((hash, index) => (
-                      <a
-                        key={index}
-                        href={`https://chainscan-testnet.0g.ai/tx/${hash}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-blue-300 hover:text-blue-200 text-sm font-mono mb-1 hover:underline"
-                      >
-                        {index + 1}. {hash.slice(0, 10)}...{hash.slice(-8)}
-                      </a>
+                      <div key={index} className="flex items-center justify-between mb-2">
+                        <a
+                          href={`https://chainscan-galileo.0g.ai/tx/${hash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-300 hover:text-blue-200 text-sm font-mono hover:underline"
+                        >
+                          {index + 1}. {hash.slice(0, 10)}...{hash.slice(-8)}
+                        </a>
+                        <button
+                          onClick={async () => {
+                            console.log('🔍 Checking transaction status:', hash);
+                            try {
+                              const isSuccess = await checkTransactionStatus(hash);
+                              if (isSuccess) {
+                                alert('✅ Transaction confirmed successfully!');
+                              } else {
+                                alert('❌ Transaction failed or still pending. Check the explorer link.');
+                              }
+                            } catch (error) {
+                              console.error('Error checking transaction:', error);
+                              alert('❌ Could not check transaction status.');
+                            }
+                          }}
+                          className="px-2 py-1 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded transition-colors"
+                          title="Check Transaction Status"
+                        >
+                          🔍
+                        </button>
+                      </div>
                     ))}
                   </div>
                 )}

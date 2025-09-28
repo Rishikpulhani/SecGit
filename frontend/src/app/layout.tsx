@@ -12,7 +12,7 @@ const inter = Inter({
 })
 
 export const metadata: Metadata = {
-  title: 'BountyHub - Secure Rewards for Open Source Contributors',
+  title: 'SecGit - Secure Rewards for Open Source Contributors',
   description: 'A secure bounty rewards platform connecting open source contributors with meaningful projects and fair compensation.',
   keywords: ['bounty', 'open source', 'blockchain', 'rewards', 'contributors', 'ethereum'],
 }

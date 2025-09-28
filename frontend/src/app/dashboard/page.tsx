@@ -228,7 +228,7 @@ export default function Dashboard() {
     localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
     
     // Final success message
-    alert(`🎉 Bounty Distribution Complete!\n\n💰 ${submission.issue.bounty} ETH has been distributed\n🔗 PR has been closed\n✅ Issue resolved successfully`);
+    alert(`🎉 Bounty Distribution Complete!\n\n💰 ${submission.issue.bounty} OG has been distributed\n🔗 PR has been closed\n✅ Issue resolved successfully`);
   };
 
   const handleRejectSubmission = (submissionId: number) => {
@@ -447,7 +447,7 @@ export default function Dashboard() {
                 
                 <div className="bg-gray-900/50 border border-gray-800 rounded-xl p-6">
                   <div className="text-3xl font-bold text-green-400 mb-2">
-                    {bounties.reduce((sum, bounty) => sum + parseFloat(bounty.totalBounty), 0).toFixed(2)} ETH
+                    {bounties.reduce((sum, bounty) => sum + parseFloat(bounty.totalBounty), 0).toFixed(2)} OG
                   </div>
                   <div className="text-sm text-gray-400">Total Value</div>
                 </div>
@@ -497,7 +497,7 @@ export default function Dashboard() {
                             <div>
                               <h3 className="text-lg font-semibold text-white">{bounty.repository}</h3>
                               <div className="text-sm text-gray-400 mt-1">
-                                {bounty.issues.length} issues • {bounty.totalBounty} ETH • {formatDate(bounty.createdAt)}
+                                {bounty.issues.length} issues • {bounty.totalBounty} OG • {formatDate(bounty.createdAt)}
                               </div>
                             </div>
                           </div>
@@ -524,7 +524,7 @@ export default function Dashboard() {
                                 }`}>
                                   {issue.status === 'active' || !issue.status ? 'active' : 'closed'}
                                 </span>
-                                <span className="text-sm font-semibold text-green-400">{issue.suggestedBounty} ETH</span>
+                                <span className="text-sm font-semibold text-green-400">{issue.suggestedBounty} OG</span>
                                 {issue.githubIssueUrl && (
                                   <a
                                     href={issue.githubIssueUrl}
@@ -592,8 +592,8 @@ export default function Dashboard() {
                                 {submission.issue.repository}
                               </span>
                               <span>#{submission.issue.issueNumber}</span>
-                              <span>Stake: {submission.stakeAmount} ETH</span>
-                              <span>Bounty: {submission.issue.bounty} ETH</span>
+                              <span>Stake: {submission.stakeAmount} OG</span>
+                              <span>Bounty: {submission.issue.bounty} OG</span>
                             </div>
                           </div>
                           
@@ -663,7 +663,7 @@ export default function Dashboard() {
                           ) : submission.submissionStatus === 'accepted' ? (
                             <div className="flex items-center text-green-300">
                               <CheckCircle className="w-4 h-4 mr-2" />
-                              <span>Accepted - Bounty Distributed ({submission.issue.bounty} ETH)</span>
+                              <span>Accepted - Bounty Distributed ({submission.issue.bounty} OG)</span>
                             </div>
                           ) : (
                             <div className="flex items-center text-red-300">

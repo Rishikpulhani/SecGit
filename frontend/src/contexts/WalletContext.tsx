@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { ethers } from 'ethers';
-import { CONTRACT_CONFIG, PAYMENT_CONFIG, DIFFICULTY_MAPPING, getTxExplorerUrl } from '../config/contract';
+import { CONTRACT_CONFIG, PAYMENT_CONFIG, DIFFICULTY_MAPPING, getTxExplorerUrl, convertOgToEth } from '../config/contract';
 import { CONTRACT_ABI } from '../config/contractABI';
 
 interface WalletContextType {
@@ -20,6 +20,8 @@ interface WalletContextType {
   getOrganizationInfo: (address?: string) => Promise<any>;
   getIssueInfo: (issueId: number) => Promise<any>;
   isOrganizationRegistered: (address?: string) => Promise<boolean>;
+  checkNetwork: () => Promise<void>;
+  checkTransactionStatus: (txHash: string) => Promise<boolean>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -46,13 +48,94 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
   // Check if wallet is already connected on page load
   useEffect(() => {
     checkConnection();
+    
+    // Add a debug function to window for manual testing
+    (window as any).debugNetwork = async () => {
+      if (!window.ethereum) {
+        console.log('❌ No ethereum provider');
+        return;
+      }
+      
+      try {
+        const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+        console.log('🔍 Debug - Current chain ID:', chainId);
+        console.log('🔍 Debug - Expected chain ID:', CONTRACT_CONFIG.network.chainIdHex);
+        console.log('🔍 Debug - Expected decimal:', CONTRACT_CONFIG.network.chainId);
+        
+        const currentDecimal = parseInt(chainId, 16);
+        console.log('🔍 Debug - Current decimal:', currentDecimal);
+        
+        const isCorrect = chainId === CONTRACT_CONFIG.network.chainIdHex;
+        console.log('🔍 Debug - Is correct (hex):', isCorrect);
+        
+        const isCorrectDecimal = currentDecimal === CONTRACT_CONFIG.network.chainId;
+        console.log('🔍 Debug - Is correct (decimal):', isCorrectDecimal);
+        
+        await checkNetwork();
+      } catch (error) {
+        console.error('Debug error:', error);
+      }
+    };
+    
+    // Add debug functions to window for manual testing
+    (window as any).debugContract = async () => {
+      console.log('🔧 Debug Contract Initialization:');
+      console.log('  - Account:', account);
+      console.log('  - Is Connected:', isConnected);
+      console.log('  - Is On Correct Network:', isOnCorrectNetwork);
+      console.log('  - Contract:', contract);
+      console.log('  - Ethereum Provider:', !!window.ethereum);
+      
+      if (window.ethereum) {
+        try {
+          const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+          console.log('  - Current Chain ID:', chainId);
+          console.log('  - Expected Chain ID:', CONTRACT_CONFIG.network.chainIdHex);
+        } catch (error) {
+          console.error('  - Error getting chain ID:', error);
+        }
+      }
+      
+      // Try to initialize contract manually
+      if (account && isOnCorrectNetwork) {
+        console.log('🔄 Attempting manual contract initialization...');
+        await initializeContract();
+      } else {
+        console.log('❌ Cannot initialize: missing account or wrong network');
+      }
+    };
+    
+    // Check for ethereum provider conflicts
+    if (window.ethereum) {
+      // Test if ethereum provider is working (async check)
+      window.ethereum.request({ method: 'eth_chainId' })
+        .then(() => {
+          console.log('✅ Ethereum provider is working correctly');
+        })
+        .catch((error) => {
+          console.warn('⚠️ Ethereum provider conflict detected:', error);
+          console.warn('💡 Try disabling browser extensions or impersonator tools');
+        });
+    }
+    
+    console.log('🛠️ Debug functions added: window.debugNetwork() and window.debugContract()');
   }, []);
 
   // Initialize contract when account and network are ready
   useEffect(() => {
+    console.log('🔄 Contract useEffect triggered:', { account: !!account, isOnCorrectNetwork, contract: !!contract });
+    
     if (account && isOnCorrectNetwork) {
-      initializeContract();
+      console.log('🚀 Attempting to initialize contract...');
+      // Add a small delay to ensure everything is ready
+      setTimeout(() => {
+        initializeContract();
+      }, 500);
     } else {
+      console.log('❌ Cannot initialize contract:', { 
+        hasAccount: !!account, 
+        correctNetwork: isOnCorrectNetwork 
+      });
       setContract(null);
     }
   }, [account, isOnCorrectNetwork]);
@@ -74,20 +157,64 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
 
   const checkNetwork = async () => {
     try {
-      if (!window.ethereum) return;
+      if (!window.ethereum) {
+        console.log('❌ No ethereum provider found');
+        setIsOnCorrectNetwork(false);
+        return;
+      }
       
-      // Always assume correct network for Rabby compatibility
-      setIsOnCorrectNetwork(true);
-      console.log('Network check bypassed - assuming correct network');
+      // Check current network with multiple methods
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      console.log('🔍 Current chain ID:', chainId);
+      console.log('🎯 Expected chain ID:', CONTRACT_CONFIG.network.chainIdHex);
+      console.log('📋 Expected decimal:', CONTRACT_CONFIG.network.chainId);
+      
+      // Convert to decimal for comparison
+      const currentChainIdDecimal = parseInt(chainId, 16);
+      const expectedChainIdDecimal = CONTRACT_CONFIG.network.chainId;
+      
+      console.log('🔢 Current decimal:', currentChainIdDecimal);
+      console.log('🔢 Expected decimal:', expectedChainIdDecimal);
+      
+      const isCorrectNetwork = chainId === CONTRACT_CONFIG.network.chainIdHex || 
+                              currentChainIdDecimal === expectedChainIdDecimal;
+      
+      console.log('✅ Is correct network:', isCorrectNetwork);
+      setIsOnCorrectNetwork(isCorrectNetwork);
+      
+      if (isCorrectNetwork) {
+        console.log('✅ Connected to OG-Galileo-Testnet (Chain ID:', chainId, ')');
+        await initializeContract();
+      } else {
+        console.log('⚠️ Not on OG network. Current chain:', chainId, 'Expected:', CONTRACT_CONFIG.network.chainIdHex);
+        console.log('💡 Please switch to OG-Galileo-Testnet to use OG tokens');
+        setContract(null); // Clear contract if on wrong network
+      }
     } catch (error) {
-      console.error('Error checking network:', error);
-      setIsOnCorrectNetwork(true); // Default to true
+      console.error('❌ Error checking network:', error);
+      setIsOnCorrectNetwork(false);
+      setContract(null);
     }
   };
 
   const initializeContract = async () => {
     try {
-      if (!window.ethereum || !account) return;
+      if (!window.ethereum || !account) {
+        console.log('❌ Cannot initialize contract: missing ethereum or account');
+        setContract(null);
+        return;
+      }
+
+      // Double-check we're on the correct network
+      const chainId = await window.ethereum.request({ method: 'eth_chainId' });
+      console.log('🔍 Contract init - Current chain ID:', chainId);
+      console.log('🎯 Contract init - Expected chain ID:', CONTRACT_CONFIG.network.chainIdHex);
+      
+      if (chainId !== CONTRACT_CONFIG.network.chainIdHex) {
+        console.log('❌ Cannot initialize contract: wrong network', chainId, 'expected', CONTRACT_CONFIG.network.chainIdHex);
+        setContract(null);
+        return;
+      }
 
       const provider = new ethers.providers.Web3Provider(window.ethereum);
       const signer = provider.getSigner();
@@ -98,11 +225,59 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         signer
       );
       
+      // Test the contract connection
+      try {
+        await contractInstance.provider.getNetwork();
+        console.log('✅ Contract provider network verified');
+      } catch (providerError) {
+        console.error('❌ Contract provider error:', providerError);
+        setContract(null);
+        return;
+      }
+      
       setContract(contractInstance);
-      console.log('✅ Contract initialized:', CONTRACT_CONFIG.address);
+      console.log('✅ Contract initialized successfully:', CONTRACT_CONFIG.address);
     } catch (error) {
-      console.error('Error initializing contract:', error);
+      console.error('❌ Error initializing contract:', error);
       setContract(null);
+    }
+  };
+
+  const switchToOGNetwork = async () => {
+    try {
+      if (!window.ethereum) {
+        throw new Error('No wallet detected');
+      }
+      
+      console.log('🔄 Switching to OG-Galileo-Testnet...');
+      await window.ethereum.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: CONTRACT_CONFIG.network.chainIdHex }],
+      });
+      
+      console.log('✅ Network switch successful');
+      await checkNetwork();
+      return true;
+    } catch (switchError: any) {
+      console.log('⚠️ Switch error:', switchError);
+      
+      if (switchError.code === 4902) {
+        console.log('🔧 Adding OG network...');
+        try {
+          await window.ethereum.request({
+            method: 'wallet_addEthereumChain',
+            params: [CONTRACT_CONFIG.network],
+          });
+          console.log('✅ Network added successfully');
+          await checkNetwork();
+          return true;
+        } catch (addError: any) {
+          console.error('❌ Error adding network:', addError);
+          throw new Error(`Failed to add OG network: ${addError.message}`);
+        }
+      } else {
+        throw new Error(`Failed to switch to OG network: ${switchError.message}`);
+      }
     }
   };
 
@@ -125,6 +300,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         setIsConnected(true);
         await checkNetwork();
         
+        // If not on correct network, try to switch
+        if (!isOnCorrectNetwork) {
+          try {
+            await switchToOGNetwork();
+          } catch (error) {
+            console.error('Failed to switch to OG network:', error);
+          }
+        }
+        
         // Listen for account changes
         window.ethereum.on('accountsChanged', (accounts: string[]) => {
           if (accounts.length > 0) {
@@ -137,7 +321,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
         });
 
         // Listen for chain changes
-        window.ethereum.on('chainChanged', () => {
+        window.ethereum.on('chainChanged', (chainId: string) => {
+          console.log('🔄 Chain changed to:', chainId);
           checkNetwork();
         });
       }
@@ -163,7 +348,7 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const transactionParameters = {
         to,
         from: account,
-        value: value, // Amount in wei (0.001 ETH = 1000000000000000 wei)
+        value: value, // Amount in wei (0.001 OG = 1000000000000000 wei)
         gas: '0x5208', // 21000 gas limit for simple transfer
       };
 
@@ -229,43 +414,127 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
 
   const registerRepository = async (repoUrl: string): Promise<string> => {
     try {
-      if (!contract || !account) {
-        throw new Error('Contract not initialized or wallet not connected');
+      // Check wallet connection
+      if (!account) {
+        throw new Error('Wallet not connected. Please connect your wallet first.');
       }
 
+      // Check if organization is already registered
+      const isAlreadyRegistered = await isOrganizationRegistered(account);
+      if (isAlreadyRegistered) {
+        throw new Error('This wallet address has already registered an organization. Please use a different wallet address or contact support to reset registration.');
+      }
+
+      // Check network
       if (!isOnCorrectNetwork) {
-        const switched = await switchToCorrectNetwork();
-        if (!switched) {
-          throw new Error('Please switch to 0G network first');
+        console.log('⚠️ Not on OG network, attempting to switch...');
+        try {
+          await switchToOGNetwork();
+        } catch (switchError) {
+          throw new Error('Please switch to OG-Galileo-Testnet network first');
+        }
+      }
+
+      // Check contract initialization
+      if (!contract) {
+        console.log('⚠️ Contract not initialized, attempting to initialize...');
+        await initializeContract();
+        if (!contract) {
+          throw new Error('Failed to initialize contract. Please refresh and try again.');
         }
       }
 
       console.log('🔄 Registering repository:', repoUrl);
-      console.log('💰 Payment amount:', PAYMENT_CONFIG.ORG_REGISTRATION, 'ETH');
+      console.log('💰 Payment amount:', PAYMENT_CONFIG.ORG_REGISTRATION, 'OG');
 
-      // Convert payment to wei
-      const paymentWei = ethers.utils.parseEther(PAYMENT_CONFIG.ORG_REGISTRATION);
+      // Convert OG amount to ETH for contract call
+      const ethAmount = convertOgToEth(PAYMENT_CONFIG.ORG_REGISTRATION);
+      console.log('💱 Converted to ETH for contract:', ethAmount, 'ETH');
       
-      // Call registerOrganization with payment
+      // FORCE the correct amount - always use 0.000001 ETH for registration
+      const finalEthAmount = "0.000001";
+      console.log('🔧 FORCED ETH amount for registration:', finalEthAmount);
+      
+      // Convert payment to wei (using FORCED ETH amount)
+      const paymentWei = ethers.utils.parseEther(finalEthAmount);
+      console.log('🔢 Payment in wei:', paymentWei.toString());
+      console.log('🔢 Payment hex:', paymentWei.toHexString());
+      
+      // Try calling registerOrganization with different approach
+      console.log('🚀 Attempting contract call with parameters:');
+      console.log('  - repoUrl:', repoUrl);
+      console.log('  - easyDuration: 0');
+      console.log('  - mediumDuration: 0');
+      console.log('  - hardDuration: 0');
+      console.log('  - value:', paymentWei.toString());
+      
+      // Call registerOrganization with payment and manual gas limit
       const tx = await contract.registerOrganization(
         repoUrl,
         0, // Use default easy duration
         0, // Use default medium duration
         0, // Use default hard duration
-        { value: paymentWei }
+        { 
+          value: paymentWei,
+          gasLimit: 1000000 // Increased gas limit
+        }
       );
 
       console.log('⏳ Transaction sent:', tx.hash);
       console.log('🔗 Explorer:', getTxExplorerUrl(tx.hash));
 
-      // Wait for confirmation
-      const receipt = await tx.wait();
-      console.log('✅ Repository registered successfully!');
-      console.log('⛽ Gas used:', receipt.gasUsed.toString());
+      // Wait for confirmation with retry logic
+      let receipt;
+      let retries = 0;
+      const maxRetries = 3;
+      
+      while (retries < maxRetries) {
+        try {
+          console.log(`⏳ Waiting for transaction confirmation (attempt ${retries + 1}/${maxRetries})...`);
+          receipt = await tx.wait(1); // Wait for 1 confirmation
+          console.log('✅ Repository registered successfully!');
+          console.log('⛽ Gas used:', receipt.gasUsed.toString());
+          break;
+        } catch (waitError: any) {
+          retries++;
+          console.log(`⚠️ Receipt wait failed (attempt ${retries}/${maxRetries}):`, waitError.message);
+          
+          if (retries >= maxRetries) {
+            // If we can't get the receipt, but the transaction was sent, return the hash
+            console.log('⚠️ Could not retrieve receipt, but transaction was sent');
+            console.log('🔗 Check transaction status manually:', getTxExplorerUrl(tx.hash));
+            return tx.hash; // Return the transaction hash even without receipt
+          }
+          
+          // Wait a bit before retrying
+          await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+      }
 
       return tx.hash;
     } catch (error: any) {
       console.error('❌ Registration failed:', error);
+      
+      // Try to decode the error message if it's a contract revert
+      if (error.data && error.data.data) {
+        try {
+          const decodedError = contract.interface.parseError(error.data.data);
+          console.error('🔍 Contract error decoded:', decodedError);
+          throw new Error(`Contract Error: ${decodedError.name} - ${decodedError.args}`);
+        } catch (decodeError) {
+          console.error('🔍 Could not decode contract error:', decodeError);
+        }
+      }
+      
+      // Check for common error patterns
+      if (error.message?.includes('Organization already registered')) {
+        throw new Error('This organization address has already been registered. Please use a different wallet or contact support.');
+      } else if (error.message?.includes('Invalid stake amount')) {
+        throw new Error('Invalid stake amount. Please ensure you have sufficient OG tokens.');
+      } else if (error.message?.includes('Repository URL cannot be empty')) {
+        throw new Error('Repository URL cannot be empty.');
+      }
+      
       throw new Error(`Registration failed: ${error.message}`);
     }
   };
@@ -282,11 +551,15 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       const difficulty = DIFFICULTY_MAPPING[issueData.difficulty?.toLowerCase()] || 0;
       
       // Get default bounty amount (NOT charged from user)
-      const bountyAmount = PAYMENT_CONFIG.DEFAULT.BOUNTIES[issueData.difficulty?.toUpperCase()] || 
-                          PAYMENT_CONFIG.DEFAULT.BOUNTIES.EASY;
-      const bountyWei = ethers.utils.parseEther(bountyAmount);
+      const bountyAmountOG = PAYMENT_CONFIG.DEFAULT.BOUNTIES[issueData.difficulty?.toUpperCase()] || 
+                            PAYMENT_CONFIG.DEFAULT.BOUNTIES.EASY;
+      
+      // Convert OG amount to ETH for contract call
+      const bountyAmountETH = convertOgToEth(bountyAmountOG);
+      const bountyWei = ethers.utils.parseEther(bountyAmountETH);
 
-      console.log('💰 Bounty amount (default):', bountyAmount, 'ETH');
+      console.log('💰 Bounty amount (default):', bountyAmountOG, 'OG');
+      console.log('💱 Converted to ETH for contract:', bountyAmountETH, 'ETH');
       console.log('🎯 Difficulty:', issueData.difficulty, '→', difficulty);
 
       // Create issue in contract (this doesn't charge the user, uses org's staked funds)
@@ -377,6 +650,30 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     }
   };
 
+  const checkTransactionStatus = async (txHash: string): Promise<boolean> => {
+    try {
+      if (!window.ethereum) return false;
+      
+      const provider = new ethers.providers.Web3Provider(window.ethereum);
+      const receipt = await provider.getTransactionReceipt(txHash);
+      
+      if (receipt) {
+        console.log('📋 Transaction receipt found:', {
+          hash: receipt.transactionHash,
+          status: receipt.status,
+          blockNumber: receipt.blockNumber,
+          gasUsed: receipt.gasUsed.toString()
+        });
+        return receipt.status === 1; // 1 = success, 0 = failed
+      }
+      
+      return false;
+    } catch (error) {
+      console.error('❌ Error checking transaction status:', error);
+      return false;
+    }
+  };
+
   const contextValue: WalletContextType = {
     account,
     isConnected,
@@ -392,6 +689,8 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
     getOrganizationInfo,
     getIssueInfo,
     isOrganizationRegistered,
+    checkNetwork,
+    checkTransactionStatus,
   };
 
   return (

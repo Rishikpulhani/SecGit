@@ -8,6 +8,7 @@ import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
 import { useWallet } from '../../contexts/WalletContext';
+import { convertOgToEth } from '../../config/contract';
 import { getTypeColor, getSeverityColor } from '../../utils/labelUtils';
 import { addSubmission, updateSubmission } from '../../utils/crossBrowserStorage';
 
@@ -270,8 +271,8 @@ export default function SolverDashboard() {
       if (mockMode) {
         // Mock mode - simulate transaction without real contract call
         console.log('🎯 [MOCK MODE] Taking issue:', selectedIssue.id);
-        console.log('💰 [MOCK MODE] Stake amount:', stakeAmount, 'ETH');
-        console.log('🎁 [MOCK MODE] Bounty:', selectedIssue.bounty, 'ETH');
+        console.log('💰 [MOCK MODE] Stake amount:', stakeAmount, 'OG');
+        console.log('🎁 [MOCK MODE] Bounty:', selectedIssue.bounty, 'OG');
         
         // Simulate processing delay
         await new Promise(resolve => setTimeout(resolve, 2000));
@@ -283,23 +284,30 @@ export default function SolverDashboard() {
         console.log('✅ [MOCK MODE] Transaction simulated:', mockTxHash);
       } else {
         // Real contract call
-        // Calculate required stake amount (5-20% of bounty)
-        const bountyWei = ethers.utils.parseEther(selectedIssue.bounty.toString());
+        // Convert OG amounts to ETH for contract calculations
+        const bountyETH = convertOgToEth(selectedIssue.bounty.toString());
+        const stakeETH = convertOgToEth(stakeAmount);
+        
+        console.log('💱 Converted bounty:', selectedIssue.bounty, 'OG →', bountyETH, 'ETH');
+        console.log('💱 Converted stake:', stakeAmount, 'OG →', stakeETH, 'ETH');
+        
+        // Calculate required stake amount (5-20% of bounty) using ETH values
+        const bountyWei = ethers.utils.parseEther(bountyETH);
         const minStake = (bountyWei.mul(5)).div(100); // 5% minimum
         const maxStake = (bountyWei.mul(20)).div(100); // 20% maximum
-        const userStake = ethers.utils.parseEther(stakeAmount);
+        const userStake = ethers.utils.parseEther(stakeETH);
         
         // Validate stake amount
         if (userStake.lt(minStake) || userStake.gt(maxStake)) {
           const minStakeEth = ethers.utils.formatEther(minStake);
           const maxStakeEth = ethers.utils.formatEther(maxStake);
-          alert(`Stake amount must be between ${minStakeEth} and ${maxStakeEth} ETH (5-20% of bounty).`);
+          alert(`Stake amount must be between ${minStakeEth} and ${maxStakeEth} OG (5-20% of bounty).`);
           return;
         }
 
         console.log('🎯 Taking issue:', selectedIssue.id);
-        console.log('💰 Stake amount:', stakeAmount, 'ETH');
-        console.log('🎁 Bounty:', selectedIssue.bounty, 'ETH');
+        console.log('💰 Stake amount:', stakeAmount, 'OG');
+        console.log('🎁 Bounty:', selectedIssue.bounty, 'OG');
 
         // Call the smart contract takeIssue function
         const tx = await contract.takeIssue(selectedIssue.id, {
@@ -514,7 +522,7 @@ export default function SolverDashboard() {
                 <div className="github-stat-card">
                   <div className="flex items-center justify-between">
                     <div>
-                      <div className="text-2xl font-bold text-green-400">{totalEarned.toFixed(2)} ETH</div>
+                      <div className="text-2xl font-bold text-green-400">{totalEarned.toFixed(2)} OG</div>
                       <div className="github-text-muted text-sm">Total Earned</div>
                     </div>
                     <DollarSign className="w-8 h-8 text-green-500" />
@@ -553,8 +561,8 @@ export default function SolverDashboard() {
                                 {assignment.issue.repository}
                               </span>
                               <span>Assigned: {formatDate(assignment.assignedAt)}</span>
-                              <span>Stake: {assignment.stakeAmount} ETH</span>
-                              <span>Bounty: {assignment.issue.bounty} ETH</span>
+                              <span>Stake: {assignment.stakeAmount} OG</span>
+                              <span>Bounty: {assignment.issue.bounty} OG</span>
                             </div>
                           </div>
                           
@@ -956,7 +964,7 @@ export default function SolverDashboard() {
 
               <div className="mb-6">
                 <label htmlFor="stake" className="block text-sm font-medium github-text-title mb-2">
-                  Stake Amount
+                  Stake Amount (OG)
                 </label>
                 <input
                   type="text"
@@ -969,7 +977,7 @@ export default function SolverDashboard() {
                   {mockMode ? (
                     <>Mock mode active - no real transaction will occur. Enter any amount for testing.</>
                   ) : (
-                    <>Enter the amount you want to stake for this issue (5-20% of bounty: {selectedIssue && ((selectedIssue.bounty * 0.05).toFixed(6))} - {selectedIssue && ((selectedIssue.bounty * 0.20).toFixed(6))} ETH).</>
+                    <>Enter the amount you want to stake for this issue (5-20% of bounty: {selectedIssue && ((selectedIssue.bounty * 0.05).toFixed(6))} - {selectedIssue && ((selectedIssue.bounty * 0.20).toFixed(6))} OG).</>
                   )}
                 </p>
                 

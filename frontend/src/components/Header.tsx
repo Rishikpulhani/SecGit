@@ -10,7 +10,7 @@ import { useSubmit } from '../contexts/SubmitContext';
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const router = useRouter();
-  const { account, isConnected, isConnecting, connectWallet, disconnectWallet } = useWallet();
+  const { account, isConnected, isConnecting, isOnCorrectNetwork, connectWallet, disconnectWallet, checkNetwork } = useWallet();
   const { user, isAuthenticated, logout } = useAuth();
   const { openSubmitModal } = useSubmit();
 
@@ -48,6 +48,12 @@ export default function Header() {
               className="px-3 py-2 text-sm font-medium text-white hover:text-gray-300 transition-colors"
             >
               Dashboard
+            </button>
+            <button 
+              onClick={() => window.open('https://ironjams-organization.gitbook.io/secgit/', '_blank')}
+              className="px-3 py-2 text-sm font-medium text-white hover:text-gray-300 transition-colors"
+            >
+              Docs
             </button>
           </nav>
 
@@ -188,6 +194,15 @@ export default function Header() {
                 className="text-left px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
               >
                 Dashboard
+              </button>
+              <button 
+                onClick={() => {
+                  window.open('https://ironjams-organization.gitbook.io/secgit/', '_blank');
+                  setIsMenuOpen(false);
+                }}
+                className="text-left px-3 py-2 text-sm text-gray-300 hover:text-white transition-colors"
+              >
+                Docs
               </button>
               
               {/* Mobile Wallet */}
