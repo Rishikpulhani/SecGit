@@ -1,4 +1,5 @@
-# SecGit - a highly automated and secure version of gitcoin - pitch
+# SecGit - a highly automated and secure version of gitcoin
+Gitbook Documentation: https://ironjams-organization.gitbook.io/secgit 
 
 <img width="3439" height="1789" alt="Untitled-2025-07-30-1446" src="https://github.com/user-attachments/assets/84c10968-ecf0-4162-94e2-bc828dee6b98" />
 
@@ -60,3 +61,40 @@ in order to achieve verifiable AI we have 2 approaches
 - **Verifiable AI Integration:** Trustless AI reduces human bias and centralization risks.
 - **Sybil & DoS Resistance:** Contributor staking and smart contract checks prevent spam or abuse.
 - **Maintainer Accountability:** Issue owner ≠ assignee checks ensure maintainers can’t assign issues to themselves to bypass contributors.
+
+## Tech Stack
+
+### 0G Integration
+
+**Current Deployment**  
+SecGit's core smart contract is deployed on 0G Chain (Galileo Testnet) at address `0x56de76f5b27e1bee19f813b1b2035d05331dbe45`.  
+The contract enforces all staking rules, issue management, and AI credit allocation on-chain with cryptographic guarantees.
+
+**Future Infrastructure Integration**  
+- **0G Compute (TEE):** We plan to migrate AI verification from optimistic reputation to cryptographic proofs via 0G's TEE-verified compute, enabling instant verification of AI agent outputs with mathematical certainty rather than social consensus.  
+- **0G Storage:** All AI attestations, stake records, and GitHub reconciliation logs will be stored immutably on 0G Storage at $10-11/TB (vs $17,000 on Arweave), creating a permanent, verifiable audit trail for dispute resolution.  
+- **0G Data Availability:** High-throughput DA layer will enable fast retrieval of TEE proofs during disputes and scalable access to training data for custom model fine-tuning as the platform grows.
+
+### ASI Integration
+
+SecGit leverages ASI (Artificial Superintelligence) agents for intelligent code analysis and review through a distributed agent marketplace system:
+
+**Repository Analysis Flow:**
+1. User submits a repository URL to the main agent ([main_agent.py](https://github.com/Rishikpulhani/SecGit/blob/master/main_agent.py))
+2. Main agent discovers available uAgents on the marketplace specializing in code review
+3. Our custom Langchain Code Analyzer ([uagent/agent.py](https://github.com/Rishikpulhani/SecGit/blob/master/uagent/agent.py)) gets discovered alongside other specialized agents
+4. Main agent selects and queries 3 optimal uAgents for code analysis and feature suggestions
+5. Each uAgent analyzes the repository:
+   - Our uAgent uses Langchain adapters and MeTTa ([uagent/metta/](https://github.com/Rishikpulhani/SecGit/tree/master/uagent/metta)) for advanced code reasoning and review
+   - Other agents apply their respective analysis methodologies
+6. All agents return their analysis responses to the main agent
+7. Main agent synthesizes all responses and delivers a comprehensive final recommendation
+
+**Pull Request Review Flow:**
+Similar architecture applies to PR review through the uagent2 folder:
+- PR Review Agent ([uagent2/agent.py](https://github.com/Rishikpulhani/SecGit/blob/master/uagent2/agent.py)) specializes in pull request analysis
+- Uses MeTTa ([uagent2/pr_metta/](https://github.com/Rishikpulhani/SecGit/tree/master/uagent2/pr_metta)) for enhanced reasoning capabilities
+- Integrates with the same distributed agent discovery and selection system
+- Provides detailed code review insights and improvement suggestions
+
+This decentralized AI approach ensures robust, multi-perspective analysis while maintaining transparency and verifiability through the agent marketplace ecosystem.
