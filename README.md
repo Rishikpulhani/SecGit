@@ -63,6 +63,17 @@ in order to achieve verifiable AI we have 2 approaches
 
 ## Tech Stack
 
+### 0G Integration
+
+**Current Deployment**  
+SecGit's core smart contract is deployed on 0G Chain (Galileo Testnet) at address `0x56de76f5b27e1bee19f813b1b2035d05331dbe45`.  
+The contract enforces all staking rules, issue management, and AI credit allocation on-chain with cryptographic guarantees.
+
+**Future Infrastructure Integration**  
+- **0G Compute (TEE):** We plan to migrate AI verification from optimistic reputation to cryptographic proofs via 0G's TEE-verified compute, enabling instant verification of AI agent outputs with mathematical certainty rather than social consensus.  
+- **0G Storage:** All AI attestations, stake records, and GitHub reconciliation logs will be stored immutably on 0G Storage at $10-11/TB (vs $17,000 on Arweave), creating a permanent, verifiable audit trail for dispute resolution.  
+- **0G Data Availability:** High-throughput DA layer will enable fast retrieval of TEE proofs during disputes and scalable access to training data for custom model fine-tuning as the platform grows.
+
 ### ASI Integration
 
 SecGit leverages ASI (Artificial Superintelligence) agents for intelligent code analysis and review through a distributed agent marketplace system:
