@@ -67,7 +67,7 @@ export default function IssueReview() {
 
   // Bounty calculation system - weighted averages between contract values and display weights
   const calculateBounty = (difficulty: string) => {
-    // Contract hardcoded values (actual blockchain amounts)
+    // Contract values (actual blockchain amounts)
     const contractValues = {
       'easy': 0.00001,   // 0.00001 ETH - actual contract value
       'low': 0.00001,    // 0.00001 ETH - alias for easy

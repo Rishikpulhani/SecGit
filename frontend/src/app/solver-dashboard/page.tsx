@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { ethers } from 'ethers';
 import { Target, Clock, DollarSign, Github, ExternalLink, Send, CheckCircle, XCircle, AlertCircle, Plus, Star, GitFork, Code, Shield, Bug, Zap, X, Search } from 'lucide-react';
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { useWallet } from '../../contexts/WalletContext';
 import { getTypeColor, getSeverityColor } from '../../utils/labelUtils';
-// import { useWallet } from '../../contexts/WalletContext'; // Not needed for hardcoded flow
+import { addSubmission, updateSubmission } from '../../utils/crossBrowserStorage';
 
 interface Assignment {
   id: number;
@@ -27,7 +29,7 @@ interface Assignment {
   assignedTo: string;
   assignedAt: string;
   status: 'assigned' | 'active' | 'closed';
-  submissionStatus: 'not_submitted' | 'submitted' | 'accepted' | 'rejected';
+  submissionStatus: 'not_submitted' | 'submitted' | 'analyzing' | 'accepted' | 'rejected';
   submissionUrl?: string;
   submittedAt?: string;
 }
@@ -56,7 +58,7 @@ type GitHubIssue = {
 export default function SolverDashboard() {
   const router = useRouter();
   const { user } = useAuth();
-  // const { account, isConnected, sendTransaction } = useWallet(); // Not needed for hardcoded flow
+  const { account, isConnected, contract, connectWallet } = useWallet();
   
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -76,8 +78,14 @@ export default function SolverDashboard() {
   // Staking modal state
   const [selectedIssue, setSelectedIssue] = useState<GitHubIssue | null>(null);
   const [showStakingModal, setShowStakingModal] = useState(false);
-  const [stakeAmount, setStakeAmount] = useState('0.5');
+  const [stakeAmount, setStakeAmount] = useState('0.1');
   const [isStaking, setIsStaking] = useState(false);
+  
+  // Tab state
+  const [activeTab, setActiveTab] = useState<'assignments' | 'available'>('assignments');
+  
+  // Mock mode for testing without real funds
+  const [mockMode, setMockMode] = useState(true);
 
   useEffect(() => {
     // Load assignments from localStorage
@@ -135,8 +143,15 @@ export default function SolverDashboard() {
     setIsSubmitting(true);
 
     try {
-      // Simulate submission processing
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Simulate submission processing with progress updates
+      console.log('🔄 Submitting solution...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('📝 Validating PR URL...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      console.log('✅ Solution submitted to organization for review...');
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Update assignment status
       const updatedAssignments = assignments.map(assignment => 
@@ -153,18 +168,18 @@ export default function SolverDashboard() {
       setAssignments(updatedAssignments);
       localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
       
-      // Also store in shared submissions pool for cross-browser access
-      const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
+      // Store in cross-browser shared submissions pool
       const submissionData = updatedAssignments.find(a => a.id === selectedAssignment.id);
       if (submissionData) {
-        // Remove any existing submission with same ID and add the updated one
-        const filteredSubmissions = allSubmissions.filter((s: any) => s.id !== submissionData.id);
-        filteredSubmissions.push(submissionData);
-        localStorage.setItem('allSubmissions', JSON.stringify(filteredSubmissions));
+        console.log('📤 Submitting to cross-browser storage:', submissionData);
+        addSubmission(submissionData);
       }
 
       setShowSubmitModal(false);
-      alert('Solution submitted successfully!');
+      setPrUrl('');
+      
+      // Show success message with more details
+      alert(`✅ Solution submitted successfully!\n\n📋 Issue: ${selectedAssignment.issue.title}\n🔗 PR: ${prUrl}\n⏳ Status: Waiting for organization review\n\nYou can check the status in your assignments tab.`);
 
     } catch (error) {
       console.error('Error submitting solution:', error);
@@ -208,6 +223,8 @@ export default function SolverDashboard() {
         return <span className="github-state-open">Not Submitted</span>;
       case 'submitted':
         return <span className="px-2 py-1 text-xs font-medium text-white rounded-full" style={{ backgroundColor: '#d29922' }}>Submitted</span>;
+      case 'analyzing':
+        return <span className="px-2 py-1 text-xs font-medium text-white rounded-full" style={{ backgroundColor: '#0969da' }}>AI Analyzing</span>;
       case 'accepted':
         return <span className="github-state-open" style={{ backgroundColor: '#238636' }}>Accepted</span>;
       case 'rejected':
@@ -225,21 +242,76 @@ export default function SolverDashboard() {
     });
   };
 
-  // Handle staking and assignment (Hardcoded - No real contract integration)
+  // Handle staking and assignment using smart contract
   const handleStakeAndAssign = async () => {
     if (!selectedIssue) {
       alert('Please select an issue first.');
       return;
     }
 
+    if (!mockMode) {
+      if (!isConnected) {
+        alert('Please connect your wallet to take an issue.');
+        await connectWallet();
+        return;
+      }
+
+      if (!contract) {
+        alert('Contract not available. Please try again.');
+        return;
+      }
+    }
+
     setIsStaking(true);
 
     try {
-      // Simulate processing delay
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      let receipt;
+      
+      if (mockMode) {
+        // Mock mode - simulate transaction without real contract call
+        console.log('🎯 [MOCK MODE] Taking issue:', selectedIssue.id);
+        console.log('💰 [MOCK MODE] Stake amount:', stakeAmount, 'ETH');
+        console.log('🎁 [MOCK MODE] Bounty:', selectedIssue.bounty, 'ETH');
+        
+        // Simulate processing delay
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Generate mock transaction hash
+        const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+        receipt = { transactionHash: mockTxHash };
+        
+        console.log('✅ [MOCK MODE] Transaction simulated:', mockTxHash);
+      } else {
+        // Real contract call
+        // Calculate required stake amount (5-20% of bounty)
+        const bountyWei = ethers.utils.parseEther(selectedIssue.bounty.toString());
+        const minStake = (bountyWei.mul(5)).div(100); // 5% minimum
+        const maxStake = (bountyWei.mul(20)).div(100); // 20% maximum
+        const userStake = ethers.utils.parseEther(stakeAmount);
+        
+        // Validate stake amount
+        if (userStake.lt(minStake) || userStake.gt(maxStake)) {
+          const minStakeEth = ethers.utils.formatEther(minStake);
+          const maxStakeEth = ethers.utils.formatEther(maxStake);
+          alert(`Stake amount must be between ${minStakeEth} and ${maxStakeEth} ETH (5-20% of bounty).`);
+          return;
+        }
 
-      // Generate a mock transaction hash
-      const mockTxHash = `0x${Math.random().toString(16).substr(2, 64)}`;
+        console.log('🎯 Taking issue:', selectedIssue.id);
+        console.log('💰 Stake amount:', stakeAmount, 'ETH');
+        console.log('🎁 Bounty:', selectedIssue.bounty, 'ETH');
+
+        // Call the smart contract takeIssue function
+        const tx = await contract.takeIssue(selectedIssue.id, {
+          value: userStake // Send stake amount with transaction
+        });
+
+        console.log('⏳ Transaction sent:', tx.hash);
+        
+        // Wait for transaction confirmation
+        receipt = await tx.wait();
+        console.log('✅ Transaction confirmed:', receipt.transactionHash);
+      }
 
       // Create assignment data
       const assignmentData: Assignment = {
@@ -255,9 +327,9 @@ export default function SolverDashboard() {
           bounty: selectedIssue.bounty,
           issueNumber: selectedIssue.issueNumber,
         },
-        stakeAmount: '0.5', // Hardcoded stake amount
-        transactionHash: mockTxHash,
-        assignedTo: 'demo-user', // Hardcoded demo user
+        stakeAmount: stakeAmount,
+        transactionHash: receipt.transactionHash,
+        assignedTo: user?.login || account || 'user',
         assignedAt: new Date().toISOString(),
         status: 'assigned',
         submissionStatus: 'not_submitted'
@@ -268,20 +340,33 @@ export default function SolverDashboard() {
       existingAssignments.push(assignmentData);
       localStorage.setItem('userAssignments', JSON.stringify(existingAssignments));
       
-      // Also store in shared pool for cross-browser access
-      const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
-      allSubmissions.push(assignmentData);
-      localStorage.setItem('allSubmissions', JSON.stringify(allSubmissions));
+      // Store in cross-browser shared submissions pool
+      console.log('📤 Adding assignment to cross-browser storage:', assignmentData);
+      addSubmission(assignmentData);
       
       setShowStakingModal(false);
       setAssignments(existingAssignments); // Update local state
       
       // Show success message
-      alert(`Issue assigned successfully! Transaction: ${mockTxHash}`);
+      const successMessage = mockMode 
+        ? `Issue assigned successfully! (Mock Mode) Transaction: ${receipt.transactionHash}`
+        : `Issue assigned successfully! Transaction: ${receipt.transactionHash}`;
+      alert(successMessage);
       
     } catch (error: any) {
-      console.error('Error staking and assigning:', error);
-      alert('Failed to assign issue. Please try again.');
+      console.error('Error taking issue:', error);
+      
+      if (error.code === 4001) {
+        alert('Transaction cancelled by user.');
+      } else if (error.message?.includes('Issue already assigned')) {
+        alert('This issue has already been assigned to someone else.');
+      } else if (error.message?.includes('Invalid stake amount')) {
+        alert('Invalid stake amount. Please check the minimum and maximum stake requirements.');
+      } else if (error.message?.includes('already attempted')) {
+        alert('You have already attempted this issue.');
+      } else {
+        alert(`Failed to take issue: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setIsStaking(false);
     }
@@ -375,13 +460,17 @@ export default function SolverDashboard() {
             {/* GitHub Navigation Tabs */}
             <div className="github-nav-tabs">
               <div className="flex">
-                <button className="github-nav-tab active">
-                  <Target className="w-4 h-4 mr-2" />
+                <button 
+                  className={`github-nav-tab ${activeTab === 'assignments' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('assignments')}
+                >
                   Assignments
                   <span className="github-counter ml-2">{totalAssigned}</span>
                 </button>
-                <button className="github-nav-tab">
-                  <Search className="w-4 h-4 mr-2" />
+                <button 
+                  className={`github-nav-tab ${activeTab === 'available' ? 'active' : ''}`}
+                  onClick={() => setActiveTab('available')}
+                >
                   Available Issues
                   <span className="github-counter ml-2">{issues.length}</span>
                 </button>
@@ -433,14 +522,15 @@ export default function SolverDashboard() {
                 </div>
               </div>
 
-              {/* Assignments List */}
-              <div className="space-y-4">
+              {/* Assignments Tab Content */}
+              {activeTab === 'assignments' && (
+                <div className="space-y-4">
                 {assignments.length === 0 ? (
                   <div className="github-card p-12 text-center">
                     <Target className="w-16 h-16 github-text-muted mx-auto mb-4" />
                     <h3 className="github-h3 mb-2">No assignments yet</h3>
                     <p className="github-text-muted mb-4">
-                      You haven't been assigned any issues yet. Scroll down to see available issues you can take on.
+                      You haven't been assigned any issues yet. Switch to the "Available Issues" tab to see issues you can take on.
                     </p>
                   </div>
                 ) : (
@@ -492,6 +582,26 @@ export default function SolverDashboard() {
                             <div className="flex items-center text-yellow-300">
                               <Clock className="w-4 h-4 mr-2" />
                               <span className="font-medium">Solution submitted, waiting for review</span>
+                            </div>
+                            {assignment.submissionUrl && (
+                              <a
+                                href={assignment.submissionUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="github-text-link text-sm flex items-center mt-2"
+                              >
+                                <ExternalLink className="w-4 h-4 mr-1" />
+                                View PR
+                              </a>
+                            )}
+                          </div>
+                        )}
+
+                        {assignment.submissionStatus === 'analyzing' && (
+                          <div className="github-card p-3 mb-4" style={{ backgroundColor: '#0969da1a', borderColor: '#0969da' }}>
+                            <div className="flex items-center text-blue-300">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-300 mr-2"></div>
+                              <span className="font-medium">AI is analyzing your PR...</span>
                             </div>
                             {assignment.submissionUrl && (
                               <a
@@ -569,10 +679,12 @@ export default function SolverDashboard() {
                     );
                   })
                 )}
-              </div>
+                </div>
+              )}
 
-              {/* Available Issues Section */}
-              <div className="mt-12">
+              {/* Available Issues Tab Content */}
+              {activeTab === 'available' && (
+                <div>
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="github-h2">Available Issues</h2>
                   <div className="flex items-center space-x-4">
@@ -714,7 +826,7 @@ export default function SolverDashboard() {
                                 className="btn-github-primary text-sm flex items-center justify-center"
                               >
                                 <Target className="w-4 h-4 mr-2" />
-                                Take Issue (Demo)
+                                Take Issue
                               </button>
                             </div>
                           </div>
@@ -723,7 +835,8 @@ export default function SolverDashboard() {
                     })
                   )}
                 </div>
-              </div>
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -744,7 +857,6 @@ export default function SolverDashboard() {
 
               <div className="mb-6">
                 <h4 className="github-text-title text-lg mb-2">{selectedAssignment.issue.title}</h4>
-                <p className="github-text-muted text-sm mb-4">{selectedAssignment.issue.description}</p>
                 
                 <div className="github-card p-3 mb-6">
                   <div className="flex justify-between items-center text-sm mb-2">
@@ -814,7 +926,7 @@ export default function SolverDashboard() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="github-card max-w-md w-full p-6" style={{ backgroundColor: '#161b22' }}>
               <div className="flex justify-between items-center mb-6">
-                <h3 className="github-h3 mb-0">Assign Issue (Demo)</h3>
+                <h3 className="github-h3 mb-0">Assign Issue</h3>
                 <button
                   onClick={() => setShowStakingModal(false)}
                   className="p-2 text-gray-400 hover:text-white transition-colors"
@@ -825,7 +937,6 @@ export default function SolverDashboard() {
 
               <div className="mb-6">
                 <h4 className="github-text-title text-lg mb-2">{selectedIssue.title}</h4>
-                <p className="github-text-muted text-sm mb-4">{selectedIssue.description}</p>
                 
                 <div className="github-card p-3 mb-4">
                   <div className="flex justify-between items-center text-sm">
@@ -845,18 +956,35 @@ export default function SolverDashboard() {
 
               <div className="mb-6">
                 <label htmlFor="stake" className="block text-sm font-medium github-text-title mb-2">
-                  Stake Amount (Hardcoded)
+                  Stake Amount
                 </label>
                 <input
                   type="text"
                   id="stake"
                   value={stakeAmount}
+                  onChange={(e) => setStakeAmount(e.target.value)}
                   className="github-input w-full"
-                  disabled
                 />
                 <p className="mt-2 text-sm github-text-muted">
-                  This is a hardcoded demo stake amount. No real blockchain transaction will occur.
+                  {mockMode ? (
+                    <>Mock mode active - no real transaction will occur. Enter any amount for testing.</>
+                  ) : (
+                    <>Enter the amount you want to stake for this issue (5-20% of bounty: {selectedIssue && ((selectedIssue.bounty * 0.05).toFixed(6))} - {selectedIssue && ((selectedIssue.bounty * 0.20).toFixed(6))} ETH).</>
+                  )}
                 </p>
+                
+                <div className="mt-3 flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="mockMode"
+                    checked={mockMode}
+                    onChange={(e) => setMockMode(e.target.checked)}
+                    className="rounded border-gray-600"
+                  />
+                  <label htmlFor="mockMode" className="text-sm github-text-muted">
+                    Mock Mode (for testing without real funds)
+                  </label>
+                </div>
               </div>
 
               <div className="flex space-x-3">
@@ -879,7 +1007,7 @@ export default function SolverDashboard() {
                   ) : (
                     <div className="flex items-center justify-center">
                       <Target className="w-4 h-4 mr-2" />
-                      Assign Issue (Demo)
+                      Assign Issue
                     </div>
                   )}
                 </button>

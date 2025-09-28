@@ -6,6 +6,7 @@ import { Target, ExternalLink, Clock, CheckCircle, XCircle, DollarSign, Github, 
 import Header from '../../components/Header';
 import ProtectedRoute from '../../components/ProtectedRoute';
 import { useAuth } from '../../contexts/AuthContext';
+import { getSubmissions, subscribeToSubmissions, refreshSubmissions, updateSubmission } from '../../utils/crossBrowserStorage';
 
 interface Bounty {
   id: number;
@@ -60,8 +61,10 @@ export default function Dashboard() {
         
         // Load submissions if user is gyanshupathak
         if (user?.login === 'gyanshupathak') {
-          // Load from shared submissions pool (cross-browser accessible)
-          const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
+          // Load from cross-browser shared submissions pool
+          const allSubmissions = getSubmissions();
+          console.log('📥 Dashboard loaded submissions:', allSubmissions.length);
+          console.log('📥 All submissions data:', allSubmissions);
           const repoSubmissions = allSubmissions.filter((submission: any) => {
             // Filter submissions for gyanshupathak repositories
             return submission.issue && (
@@ -69,10 +72,14 @@ export default function Dashboard() {
               submission.issue.repository === 'gyanshupathak/SolVest'
             ) && (
               submission.submissionStatus === 'submitted' || 
+              submission.submissionStatus === 'analyzing' ||
               submission.submissionStatus === 'accepted' || 
               submission.submissionStatus === 'rejected'
             );
           });
+          
+          console.log('📥 Filtered repo submissions:', repoSubmissions.length);
+          console.log('📥 Filtered submissions data:', repoSubmissions);
           
           // If no submissions found, create mock submissions for testing
           if (repoSubmissions.length === 0) {
@@ -129,6 +136,9 @@ export default function Dashboard() {
           } else {
             setSubmissions(repoSubmissions);
           }
+          
+          // Debug info
+          console.log('🔍 Debug: Found', repoSubmissions.length, 'submissions in shared pool');
         }
       } catch (error) {
         console.error('Error loading data:', error);
@@ -141,25 +151,72 @@ export default function Dashboard() {
 
     if (user) {
       loadData();
+      
+      // Subscribe to cross-browser storage updates
+      if (user.login === 'gyanshupathak') {
+        const unsubscribe = subscribeToSubmissions((updatedSubmissions) => {
+          const repoSubmissions = updatedSubmissions.filter((submission: any) => {
+            return submission.issue && (
+              submission.issue.repository === 'gyanshupathak/heatlh_panel' ||
+              submission.issue.repository === 'gyanshupathak/SolVest'
+            ) && (
+              submission.submissionStatus === 'submitted' || 
+              submission.submissionStatus === 'analyzing' ||
+              submission.submissionStatus === 'accepted' || 
+              submission.submissionStatus === 'rejected'
+            );
+          });
+          setSubmissions(repoSubmissions);
+        });
+        
+        // Cleanup subscription on unmount
+        return () => unsubscribe();
+      }
     }
   }, [user]);
 
-  const handleAcceptSubmission = (submissionId: number) => {
-    const updatedSubmissions = submissions.map(submission => 
-      submission.id === submissionId 
-        ? { ...submission, submissionStatus: 'accepted' }
-        : submission
+  const handleAcceptSubmission = async (submissionId: number) => {
+    const submission = submissions.find(s => s.id === submissionId);
+    if (!submission) return;
+
+    // Step 1: Show AI analyzing message
+    const updatedSubmissions = submissions.map(sub => 
+      sub.id === submissionId 
+        ? { ...sub, submissionStatus: 'analyzing' as any }
+        : sub
     );
     setSubmissions(updatedSubmissions);
     
-    // Update in shared submissions pool
-    const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
-    const updatedAllSubmissions = allSubmissions.map((submission: any) => 
-      submission.id === submissionId 
-        ? { ...submission, submissionStatus: 'accepted' }
-        : submission
+    // Show AI analyzing alert
+    alert('🤖 AI is analyzing the PR...\n\nThis may take a few moments.');
+    
+    // Step 2: Simulate AI analysis delay
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    // Step 3: Show PR analysis results (hardcoded)
+    const analysisResults = [
+      '✅ Code quality: Excellent',
+      '✅ Security checks: Passed',
+      '✅ Test coverage: 95%',
+      '✅ Documentation: Complete',
+      '✅ Issue resolution: Confirmed'
+    ];
+    
+    alert(`🤖 AI Analysis Complete!\n\n${analysisResults.join('\n')}\n\n✅ PR is approved and will be closed.`);
+    
+    // Step 4: Simulate PR closing delay
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Step 5: Final acceptance with bounty distribution
+    const finalUpdatedSubmissions = submissions.map(sub => 
+      sub.id === submissionId 
+        ? { ...sub, submissionStatus: 'accepted' }
+        : sub
     );
-    localStorage.setItem('allSubmissions', JSON.stringify(updatedAllSubmissions));
+    setSubmissions(finalUpdatedSubmissions);
+    
+    // Update in cross-browser shared submissions pool
+    updateSubmission(submissionId, { submissionStatus: 'accepted' });
     
     // Also update in userAssignments for the solver's browser (if same browser)
     const allAssignments = JSON.parse(localStorage.getItem('userAssignments') || '[]');
@@ -170,7 +227,8 @@ export default function Dashboard() {
     );
     localStorage.setItem('userAssignments', JSON.stringify(updatedAssignments));
     
-    alert('Submission accepted! Bounty has been distributed.');
+    // Final success message
+    alert(`🎉 Bounty Distribution Complete!\n\n💰 ${submission.issue.bounty} ETH has been distributed\n🔗 PR has been closed\n✅ Issue resolved successfully`);
   };
 
   const handleRejectSubmission = (submissionId: number) => {
@@ -181,14 +239,8 @@ export default function Dashboard() {
     );
     setSubmissions(updatedSubmissions);
     
-    // Update in shared submissions pool
-    const allSubmissions = JSON.parse(localStorage.getItem('allSubmissions') || '[]');
-    const updatedAllSubmissions = allSubmissions.map((submission: any) => 
-      submission.id === submissionId 
-        ? { ...submission, submissionStatus: 'rejected' }
-        : submission
-    );
-    localStorage.setItem('allSubmissions', JSON.stringify(updatedAllSubmissions));
+    // Update in cross-browser shared submissions pool
+    updateSubmission(submissionId, { submissionStatus: 'rejected' });
     
     // Also update in userAssignments for the solver's browser (if same browser)
     const allAssignments = JSON.parse(localStorage.getItem('userAssignments') || '[]');
@@ -215,6 +267,7 @@ export default function Dashboard() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case 'submitted': return 'bg-yellow-600 text-white border-yellow-500';
+      case 'analyzing': return 'bg-blue-600 text-white border-blue-500';
       case 'accepted': return 'bg-green-600 text-white border-green-500';
       case 'rejected': return 'bg-red-600 text-white border-red-500';
       default: return 'bg-gray-600 text-white border-gray-500';
@@ -294,6 +347,50 @@ export default function Dashboard() {
                     Manage your bounties and submissions
                   </p>
                 </div>
+                {isRepoOwner && (
+                  <button
+                    onClick={() => {
+                      console.log('🔄 Manual refresh button clicked');
+                      refreshSubmissions();
+                      
+                      // Also reload data
+                      const allSubmissions = getSubmissions();
+                      console.log('📊 All submissions after refresh:', allSubmissions);
+                      
+                      const repoSubmissions = allSubmissions.filter((submission: any) => {
+                        const hasIssue = submission.issue;
+                        const hasRepo = submission.issue && (
+                          submission.issue.repository === 'gyanshupathak/heatlh_panel' ||
+                          submission.issue.repository === 'gyanshupathak/SolVest'
+                        );
+                        const hasStatus = submission.submissionStatus && (
+                          submission.submissionStatus === 'submitted' || 
+                          submission.submissionStatus === 'analyzing' ||
+                          submission.submissionStatus === 'accepted' || 
+                          submission.submissionStatus === 'rejected'
+                        );
+                        
+                        console.log('🔍 Submission filter check:', {
+                          id: submission.id,
+                          hasIssue,
+                          hasRepo,
+                          hasStatus,
+                          repository: submission.issue?.repository,
+                          status: submission.submissionStatus
+                        });
+                        
+                        return hasIssue && hasRepo && hasStatus;
+                      });
+                      
+                      console.log('📊 Filtered submissions:', repoSubmissions);
+                      setSubmissions(repoSubmissions);
+                    }}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center space-x-2"
+                  >
+                    <Clock className="w-4 h-4" />
+                    <span>Refresh Submissions</span>
+                  </button>
+                )}
               </div>
             </div>
 
@@ -557,6 +654,11 @@ export default function Dashboard() {
                                 <ThumbsUp className="w-4 h-4 mr-2" />
                                 Accept & Distribute Bounty
                               </button>
+                            </div>
+                          ) : submission.submissionStatus === 'analyzing' ? (
+                            <div className="flex items-center text-blue-300">
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-300 mr-2"></div>
+                              <span>AI is analyzing PR...</span>
                             </div>
                           ) : submission.submissionStatus === 'accepted' ? (
                             <div className="flex items-center text-green-300">

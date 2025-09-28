@@ -268,13 +268,6 @@ export default function Hero() {
                 )}
               </div>
 
-              {/* Analysis Info */}
-              <div className="bg-blue-600/10 border border-blue-500/30 rounded-lg p-4">
-                <div className="text-sm text-blue-300">
-                  <strong>Real Blockchain Integration:</strong> Pay {PAYMENT_CONFIG.ORG_REGISTRATION} ETH to register your repository on 0G Chain. AI agents will analyze your code and create contract-based bounties for security vulnerabilities and improvements.
-                </div>
-              </div>
-
               {/* Submit Button */}
               <div className="flex space-x-4">
                 <button

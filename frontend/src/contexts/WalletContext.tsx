@@ -281,12 +281,12 @@ export const WalletProvider: React.FC<WalletProviderProps> = ({ children }) => {
       // Map difficulty to contract enum
       const difficulty = DIFFICULTY_MAPPING[issueData.difficulty?.toLowerCase()] || 0;
       
-      // Get hardcoded bounty amount (NOT charged from user)
-      const bountyAmount = PAYMENT_CONFIG.HARDCODED.BOUNTIES[issueData.difficulty?.toUpperCase()] || 
-                          PAYMENT_CONFIG.HARDCODED.BOUNTIES.EASY;
+      // Get default bounty amount (NOT charged from user)
+      const bountyAmount = PAYMENT_CONFIG.DEFAULT.BOUNTIES[issueData.difficulty?.toUpperCase()] || 
+                          PAYMENT_CONFIG.DEFAULT.BOUNTIES.EASY;
       const bountyWei = ethers.utils.parseEther(bountyAmount);
 
-      console.log('💰 Bounty amount (hardcoded):', bountyAmount, 'ETH');
+      console.log('💰 Bounty amount (default):', bountyAmount, 'ETH');
       console.log('🎯 Difficulty:', issueData.difficulty, '→', difficulty);
 
       // Create issue in contract (this doesn't charge the user, uses org's staked funds)

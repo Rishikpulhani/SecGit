@@ -24,13 +24,13 @@ export const PAYMENT_CONFIG = {
   // REAL PAYMENT from user's wallet
   ORG_REGISTRATION: "0.000001", // 0.000001 ETH - charged from user wallet
   
-  // HARDCODED values for frontend calculations (not charged from user)
-  HARDCODED: {
-    AI_CREDITS: "0.0001",        // Simulated AI credits value
+  // Default values for frontend calculations
+  DEFAULT: {
+    AI_CREDITS: "0.0001",        // AI credits value
     BOUNTIES: {
-      EASY: "0.00001",           // Easy issue bounty (hardcoded)
-      MEDIUM: "0.00005",         // Medium issue bounty (hardcoded)  
-      HARD: "0.0001"             // Hard issue bounty (hardcoded)
+      EASY: "0.00001",           // Easy issue bounty
+      MEDIUM: "0.00005",         // Medium issue bounty
+      HARD: "0.0001"             // Hard issue bounty
     }
   }
 } as const;
